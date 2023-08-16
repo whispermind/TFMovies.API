@@ -1,0 +1,162 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using SendGrid.Extensions.DependencyInjection;
+using System.Reflection;
+using System.Text;
+using TFMovies.API.Data;
+using TFMovies.API.Data.Entities;
+using TFMovies.API.Data.Repository.Implementations;
+using TFMovies.API.Data.Repository.Interfaces;
+using TFMovies.API.Middleware;
+using TFMovies.API.Models.Dto;
+using TFMovies.API.Services.Implementations;
+using TFMovies.API.Services.Interfaces;
+using TFMovies.API.Utils;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddConsole();
+
+// Add services to the container.
+builder.Services.Configure<SendGridSettings>(builder.Configuration.GetSection("SendGridSettings"));
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+builder.Services.Configure<ConfirmEmailTokenSettings>(builder.Configuration.GetSection("ConfirmEmailTokenSettings"));
+builder.Services.Configure<PasswordResetTokenSettings>(builder.Configuration.GetSection("PasswordResetTokenSettings"));
+builder.Services.Configure<UrlSettings>(builder.Configuration.GetSection("Urls"));
+
+builder.Services.AddScoped<IUserSecretTokenRepository, UserSecretTokenRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IJwtRefreshTokenRepository, JwtRefreshTokenRepository>();
+builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+builder.Services.AddScoped<IEmailService, SendGridEmailService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IUserSecretTokenService, UserSecretTokenService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.EnableAnnotations();
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v1",
+        Title = "TFMovies.API",
+        Description = "An ASP.NET Core Web API for managing Movies library"
+    });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization using Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type=ReferenceType.SecurityScheme,
+                    Id="Bearer"
+                }
+            },
+            new List<string>()
+        }
+    });
+
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+});
+
+//add ModelState Validation Factory
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = ModelStateErrorResponseFactory.GenerateErrorResponse;
+});
+
+//set Db connection		
+builder.Services.AddDbContext<DataContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultDbConnection"));
+});
+
+//add Identity
+builder.Services.AddIdentityCore<User>()
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<DataContext>();
+
+//add JWT
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["JwtSettings:ValidIssuer"],
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["JwtSettings:ValidAudience"],
+        ValidateIssuerSigningKey = true,
+
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SymmetricSecurityKey"])
+        ),
+        ValidateLifetime = true
+    };
+});
+
+//add SendGrid
+builder.Services.AddSendGrid(client =>
+{
+    client.ApiKey = builder.Configuration["SendGridSettings:ApiKey"];
+});
+
+var app = builder.Build();
+
+// add RequiredService factoru
+var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
+
+using (var scope = scopeFactory.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<DataContext>();
+    context.Database.Migrate();
+
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    await RoleInitializer.InitializeRoles(roleManager);
+}
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "TFMoviesAPI V1");
+    });
+}
+
+app.UseMiddleware<ExceptionMiddleware>();
+
+//app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
