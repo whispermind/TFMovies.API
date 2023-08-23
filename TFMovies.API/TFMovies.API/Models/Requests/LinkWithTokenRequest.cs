@@ -2,8 +2,9 @@
 
 namespace TFMovies.API.Models.Requests;
 
-public class ConfirmEmailRequest
+public class LinkWithTokenRequest
 {
     [Required]
-    public string Token { get; set; }    
+    [EmailAddress]
+    public string Email { get; set; }
 }

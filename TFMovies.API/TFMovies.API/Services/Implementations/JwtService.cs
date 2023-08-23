@@ -8,8 +8,6 @@ using TFMovies.API.Data.Entities;
 using TFMovies.API.Data.Repository.Interfaces;
 using TFMovies.API.Exceptions;
 using TFMovies.API.Models.Dto;
-using TFMovies.API.Models.Requests;
-using TFMovies.API.Models.Responses;
 using TFMovies.API.Services.Interfaces;
 using TFMovies.API.Utils;
 
@@ -20,44 +18,13 @@ public class JwtService : IJwtService
     private readonly JwtSettings _jwtSettings;
     private readonly IJwtRefreshTokenRepository _jwtRefreshTokenRepository;
 
-    public JwtService(IOptions<JwtSettings> jwtSettings, IJwtRefreshTokenRepository jwtRefreshTokenRepository)
+    public JwtService(
+        IOptions<JwtSettings> jwtSettings, 
+        IJwtRefreshTokenRepository jwtRefreshTokenRepository)
     {
         _jwtSettings = jwtSettings.Value;
         _jwtRefreshTokenRepository = jwtRefreshTokenRepository;
-    }
-
-    public async Task<JwtTokensResponse> RefreshTokensAsync(RefreshTokenRequest model)
-    {
-        var principal = GetPrincipalFromExpiredToken(model.AccessToken);
-        if (principal == null)
-        {
-            throw new UnauthorizedAccessException();
-        }
-
-        var userId = principal.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
-
-        var oldRefreshToken = await _jwtRefreshTokenRepository.CheckTokenValidAsync(model.RefreshToken, userId);
-
-        if (oldRefreshToken == null)
-        {
-            throw new UnauthorizedAccessException();
-        }
-
-        oldRefreshToken.IsUsed = true;
-        await _jwtRefreshTokenRepository.UpdateAsync(oldRefreshToken);
-
-        var newAccessToken = GenerateAccessToken(principal.Claims);
-
-        var newRefreshToken = await GenerateRefreshToken(userId);
-
-        var result = new JwtTokensResponse
-        {
-            AccessToken = newAccessToken,
-            RefreshToken = newRefreshToken
-        };
-
-        return result;
-    }
+    }  
 
     public string GenerateAccessToken(IEnumerable<Claim> claims)
     {
@@ -68,17 +35,78 @@ public class JwtService : IJwtService
         return token;
     }
 
-    public async Task<string> GenerateRefreshToken(string userId)
+    public async Task<string> GenerateRefreshTokenAsync(string userId)
     {
+        var createdAt = DateTime.UtcNow;
+
+        var expiryAt = TimeUtility.AddTime(createdAt, _jwtSettings.RefreshTokenLifeTimeUnit, _jwtSettings.RefreshTokenLifeTimeDuration);
+
         var refreshTokenId = Guid.NewGuid().ToString();
-        var expiryAt = TimeUtility.AddTime(DateTime.UtcNow, _jwtSettings.RefreshTokenLifeTimeUnit, _jwtSettings.RefreshTokenLifeTimeDuration);
 
         var claims = new[] { new Claim("jti", refreshTokenId) };
+
         var token = CreateJwtToken(claims, _jwtSettings.ValidIssuer, expiryAt);
 
-        await StoreTokenIntoDbAsync(userId, token, expiryAt);
+        await StoreTokenIntoDbAsync(userId, token, expiryAt, createdAt);
 
         return token;
+    }
+
+    public async Task ValidateAndMarkTokenAsync(string token, bool isRevoke = false)
+    {
+        var tokenDb = await _jwtRefreshTokenRepository.GetActiveTokenAsync(token);
+
+        if (tokenDb == null)
+        {
+            throw new UnauthorizedAccessException();
+        }        
+        
+        if (isRevoke)
+        {
+            tokenDb.IsRevoked = true; //for Logout
+        }
+        else
+        {
+            tokenDb.IsUsed = true;
+        }        
+
+        await _jwtRefreshTokenRepository.UpdateAsync(tokenDb);        
+    }
+
+    public ClaimsPrincipal? GetPrincipalFromToken(string token)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = false,
+            ValidIssuer = _jwtSettings.ValidIssuer,
+            ValidAudience = _jwtSettings.ValidAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SymmetricSecurityKey))
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+
+        try
+        {
+            SecurityToken securityToken;
+
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
+
+            var jwtSecurityToken = securityToken as JwtSecurityToken;
+
+            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return null;
+            }
+
+            return principal;
+        }
+        catch (Exception)
+        {
+
+            throw new InternalServerException(ErrorMessages.OperationFailed, new Exception(string.Format(ErrorMessages.OperationFailedDetails, "Expired Access Token validation.")));
+        }
     }
 
     private string CreateJwtToken(IEnumerable<Claim> claims, string audience, DateTime expiryAt)
@@ -101,12 +129,13 @@ public class JwtService : IJwtService
         return token;
     }
 
-    private async Task StoreTokenIntoDbAsync(string userId, string token, DateTime expiryAt)
+    private async Task StoreTokenIntoDbAsync(string userId, string token, DateTime expiryAt, DateTime createdAt)
     {
         var userTokenDb = new JwtRefreshToken
         {
             UserId = userId,
             Token = token,
+            CreatedAt = createdAt,
             ExpiryAt = expiryAt
         };
 
@@ -116,30 +145,5 @@ public class JwtService : IJwtService
         {
             throw new InternalServerException(ErrorMessages.OperationFailed, new Exception(string.Format(ErrorMessages.OperationFailedDetails, "Storing the Refresh token into the DB.")));
         }
-    }
-
-    private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
-    {
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = false,
-            ValidIssuer = _jwtSettings.ValidIssuer,
-            ValidAudience = _jwtSettings.ValidAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SymmetricSecurityKey))
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        SecurityToken securityToken;
-        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
-        var jwtSecurityToken = securityToken as JwtSecurityToken;
-
-        if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-        {
-            return null;
-        }
-
-        return principal;
-    }
+    }    
 }

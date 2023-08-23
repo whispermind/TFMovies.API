@@ -38,8 +38,13 @@ public class UserRepository : IUserRepository
     public async Task<bool> CheckPasswordAsync(User user, string password)
     {
         return await _userManager.CheckPasswordAsync(user, password);
+    }    
+    public string HashPassword(User user, string password) 
+    {
+        var hasher = new PasswordHasher<User>();
+        return hasher.HashPassword(user, password);
     }
-    
+
 
     //Manage UserRoles
     public async Task<IdentityResult> AddToRoleAsync(User user, string role)

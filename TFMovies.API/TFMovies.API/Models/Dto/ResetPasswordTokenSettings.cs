@@ -2,7 +2,7 @@
 
 namespace TFMovies.API.Models.Dto;
 
-public class PasswordResetTokenSettings : ITokenSettings
+public class ResetPasswordTokenSettings : ISecretTokenSettings
 {
     public int LifeTimeDuration { get; set; }
     public TimeUnitEnum LifeTimeUnit { get; set; }

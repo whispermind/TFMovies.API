@@ -5,7 +5,7 @@ namespace TFMovies.API.Services.Interfaces;
 
 public interface IUserSecretTokenService
 {
-    public ValueTask<string> CheckSecretTokenAsync(string token, SecretTokenTypeEnum tokenType);
-    public Task<string> CreateAndStoreConfirmEmailTokenAsync(string userId);
-    public Task<string> CreateAndStorePasswordRecoveryTokenAsync(string userId);
+    public Task<UserSecretToken> FindByTokenValueAndTypeAsync(string token, SecretTokenTypeEnum tokenType);
+    public Task ValidateAndConsumeSecretTokenAsync(UserSecretToken secretToken, bool setIsUsed);
+    public Task<UserSecretToken> GenerateAndStoreSecretTokenAsync(string userId, SecretTokenTypeEnum tokenType);
 }

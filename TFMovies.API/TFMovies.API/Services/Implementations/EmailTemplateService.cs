@@ -10,9 +10,11 @@ namespace TFMovies.API.Services.Implementations;
 public class EmailTemplateService : IEmailTemplateService
 {
     private readonly ConfirmEmailTokenSettings _confirmEmailTokenSettings;
-    private readonly PasswordResetTokenSettings _passwordResetTokenSettings;
+    private readonly ResetPasswordTokenSettings _passwordResetTokenSettings;
 
-    public EmailTemplateService(IOptions<PasswordResetTokenSettings> passwordResetTokenSettings, IOptions<ConfirmEmailTokenSettings> confirmEmailTokenSettings)
+    public EmailTemplateService(
+        IOptions<ResetPasswordTokenSettings> passwordResetTokenSettings, 
+        IOptions<ConfirmEmailTokenSettings> confirmEmailTokenSettings)
     {
         _passwordResetTokenSettings = passwordResetTokenSettings.Value;
         _confirmEmailTokenSettings = confirmEmailTokenSettings.Value;
@@ -24,7 +26,7 @@ public class EmailTemplateService : IEmailTemplateService
 
         var tokenLifeTime = GetTokenLifetimeString(_confirmEmailTokenSettings);
 
-        var emailContent = string.Format(EmailTemplates.ConfirmationEmailTemplate, user.Nickname, link, tokenLifeTime);
+        var emailContent = string.Format(EmailTemplates.ConfirmEmailBody, user.Nickname, link, tokenLifeTime);
 
         return emailContent;
     }
@@ -35,16 +37,16 @@ public class EmailTemplateService : IEmailTemplateService
 
         var tokenLifeTime = GetTokenLifetimeString(_passwordResetTokenSettings);
 
-        var emailContent = string.Format(EmailTemplates.PasswordRecoveryEmailTemplate, user.Nickname, link, tokenLifeTime);
+        var emailContent = string.Format(EmailTemplates.PasswordRecoveryBody, user.Nickname, link, tokenLifeTime);
 
         return emailContent;
     }
 
     private static string GenerateLinkWithToken(string baseUrl, string token, string email)
     {
-        return $"{baseUrl}?token={token}&email={email}";
+        return $"{baseUrl}?token={token}?email={email}";
     }
-    private string GetTokenLifetimeString(ITokenSettings settings)
+    private string GetTokenLifetimeString(ISecretTokenSettings settings)
     {
         return $"{settings.LifeTimeDuration} {TimeUnitEnumToFriendlyString(settings.LifeTimeUnit, settings.LifeTimeDuration)}";
     }

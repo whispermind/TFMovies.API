@@ -5,5 +5,6 @@ namespace TFMovies.API.Data.Repository.Interfaces;
 
 public interface IUserSecretTokenRepository : IBaseRepository<UserSecretToken>
 {
-    public ValueTask<UserSecretToken> FindValidByTypeAndValueAsync(string token, SecretTokenTypeEnum tokenType);
+    public Task<UserSecretToken?> FindByTokenValueAndTypeAsync(string token, SecretTokenTypeEnum tokenType);
+    public Task<UserSecretToken?> FindByUserIdAndTokenTypeAsync(string userId, SecretTokenTypeEnum tokenType);
 }

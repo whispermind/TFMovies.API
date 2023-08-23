@@ -2,5 +2,5 @@
 
 public class UrlSettings
 {
-    public string Domain { get; set; }
+    public string? Domain { get; set; }
 }

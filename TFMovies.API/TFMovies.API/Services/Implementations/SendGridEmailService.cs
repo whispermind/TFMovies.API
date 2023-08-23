@@ -15,7 +15,10 @@ public class SendGridEmailService : IEmailService
     private readonly ILogger _logger;
     private readonly SendGridSettings _sendGridSettings;
 
-    public SendGridEmailService(ISendGridClient client, IOptions<SendGridSettings> sendGridSettings, ILogger<SendGridEmailService> logger)
+    public SendGridEmailService(
+        ISendGridClient client,
+        IOptions<SendGridSettings> sendGridSettings,
+        ILogger<SendGridEmailService> logger)
     {
         _client = client;
         _logger = logger;

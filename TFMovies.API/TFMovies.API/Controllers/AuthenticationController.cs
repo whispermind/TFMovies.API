@@ -14,45 +14,14 @@ namespace TFMovies.API.Controllers;
 [Produces("application/json")]
 public class AuthenticationController : ControllerBase
 {
-    private readonly IUserService _userService;
+    private readonly IUserAuthenticationService _userAuthenticationService;
     private readonly UrlSettings _urlSettings;
 
-    public AuthenticationController(IUserService userService, IOptions<UrlSettings> urlSettings)
+    public AuthenticationController(IUserAuthenticationService userAuthenticationService, IOptions<UrlSettings> urlSettings)
     {
-        _userService = userService;
+        _userAuthenticationService = userAuthenticationService;
         _urlSettings = urlSettings.Value;
     }
-
-    /// <summary>
-    /// Registers a new user.
-    /// </summary>
-    /// <param name="model">The user registration details.</param>
-    /// <returns>Status 201 if successful.</returns>
-    /// <remarks>
-    /// Example:
-    /// 
-    /// POST /tfmovies/auth/register
-    /// {
-    ///   "Nickname": "Jonny",
-    ///   "Email": "john.doe@example.com",
-    ///   "Password": "34Jvqt+K",
-    ///   "ConfirmPassword": "34Jvqt+K"
-    /// }
-    /// </remarks>
-    [HttpPost("register")]
-    [SwaggerResponse(201, "CREATED")]
-    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "CONFLICT", typeof(ErrorResponse))]
-    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> RegisterAsync([FromBody] UserRegisterRequest model)
-    {        
-        var callBackUrl = $"{_urlSettings.Domain}{Url.Action("ConfirmEmailByTokenAsync", "User")}";
-
-        await _userService.RegisterAsync(model, callBackUrl);
-
-        return StatusCode(StatusCodes.Status201Created);
-    }
-
 
     /// <summary>
     /// User login.
@@ -64,7 +33,7 @@ public class AuthenticationController : ControllerBase
     ///
     ///     POST /tfmovies/auth/login
     ///     {
-    ///       "Email": "john.doe@example.com",
+    ///       "email": "john.doe@example.com",
     ///       "Password": "34Jvqt+K"
     ///     }
     /// </remarks>
@@ -75,9 +44,40 @@ public class AuthenticationController : ControllerBase
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     public async Task<IActionResult> LoginAsync([FromBody] UserLoginRequest model)
     {
+        var callBackUrl = GenerateCallBackUrl();
 
-        var response = await _userService.LoginAsync(model);
+        var response = await _userAuthenticationService.LoginAsync(model, callBackUrl);
 
         return Ok(response);
     }
+
+    /// <summary>
+    /// Refreshes the JWT tokens using a valid refresh token.
+    /// </summary>
+    /// <param name="model">The request model containing the access and refresh tokens.</param>
+    /// <returns>A new pair of Access and Refresh tokens if successful, otherwise returns an appropriate error status.</returns>
+    /// <remarks>
+    /// Example:
+    ///
+    ///     POST /tfmovies/auth/refresh-token
+    ///     {
+    ///         "accessToken": "current_access_token",
+    ///         "refreshToken": "current_refresh_token"
+    ///     }
+    ///
+    /// </remarks>
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(JwtTokensResponse))]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(403, "FORBIDDEN")]
+    [SwaggerResponse(409, "CONFLICT", typeof(ErrorResponse))]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshTokensAsync([FromBody] RefreshTokenRequest model)
+    {
+        var result = await _userAuthenticationService.RefreshJwtTokens(model);
+        return Ok(result);
+    }
+    
+    private string GenerateCallBackUrl() => $"{_urlSettings.Domain}{Url.RouteUrl("VerifyEmailByToken")}";
 }

@@ -26,6 +26,10 @@ public class DataContext : IdentityDbContext<User>
         builder.Entity<UserSecretToken>(entity => {
             entity.HasKey(e => e.Id);
 
+            entity.HasIndex(e => new { e.UserId, e.TokenType })
+                  .HasDatabaseName("UX_UserSecretToken_UserId_TokenType")
+                  .IsUnique();
+
             entity.Property(e => e.Token)
                   .IsRequired();
 

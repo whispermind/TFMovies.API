@@ -21,12 +21,7 @@ public class BaseRepository<T> : IBaseRepository<T>
         await SaveChangesAsync();
 
         return entity;
-    }
-
-    public async ValueTask<T> GetByIdAsync(string id)
-    {
-        return await _entities.FindAsync(id);
-    }
+    }   
 
     public async ValueTask<T> UpdateAsync(T updatedEntity)
     {

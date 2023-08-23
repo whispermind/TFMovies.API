@@ -14,6 +14,7 @@ public interface IUserRepository
 
     //Manage Password
     public Task<bool> CheckPasswordAsync(User user, string password);
+    public string HashPassword(User user, string password);
 
     //Manage UserRoles
     public Task<IdentityResult> AddToRoleAsync(User user, string role);

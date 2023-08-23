@@ -3,5 +3,5 @@
 public enum SecretTokenTypeEnum
 {
     ConfirmEmail,
-    PasswordReset
+    ResetPassword
 }

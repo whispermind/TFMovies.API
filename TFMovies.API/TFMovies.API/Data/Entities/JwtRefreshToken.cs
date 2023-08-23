@@ -3,8 +3,8 @@
 public class JwtRefreshToken
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
-    public string UserId { get; set; }
-    public string Token { get; set; }
+    public string? UserId { get; set; }
+    public string? Token { get; set; }
     public DateTime ExpiryAt { get; set; }
     public bool IsUsed { get; set; } = false;
     public bool IsRevoked { get; set; } = false;

@@ -27,7 +27,7 @@ builder.Logging.AddConsole();
 builder.Services.Configure<SendGridSettings>(builder.Configuration.GetSection("SendGridSettings"));
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<ConfirmEmailTokenSettings>(builder.Configuration.GetSection("ConfirmEmailTokenSettings"));
-builder.Services.Configure<PasswordResetTokenSettings>(builder.Configuration.GetSection("PasswordResetTokenSettings"));
+builder.Services.Configure<ResetPasswordTokenSettings>(builder.Configuration.GetSection("PasswordResetTokenSettings"));
 builder.Services.Configure<UrlSettings>(builder.Configuration.GetSection("Urls"));
 
 builder.Services.AddScoped<IUserSecretTokenRepository, UserSecretTokenRepository>();
@@ -37,8 +37,10 @@ builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserSecretTokenService, UserSecretTokenService>();
-builder.Services.AddScoped<IUserService, UserService>();
-
+builder.Services.AddScoped<IUserAuthenticationService, UserAuthenticationService>();
+builder.Services.AddScoped<IUserRegistrationService, UserRegistrationService>();
+builder.Services.AddScoped<IUserPasswordService, UserPasswordService>();
+builder.Services.AddScoped<IUserEmailService, UserEmailService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

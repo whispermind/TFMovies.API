@@ -9,12 +9,11 @@ public class JwtRefreshTokenRepository : BaseRepository<JwtRefreshToken>, IJwtRe
     public JwtRefreshTokenRepository(DataContext context) : base(context)
     { }
 
-    public async ValueTask<JwtRefreshToken> CheckTokenValidAsync(string token, string userId)
+    public async Task<JwtRefreshToken?> GetActiveTokenAsync(string token)
     {
         var result = await _entities
                .FirstOrDefaultAsync(item =>
-                 item.Token == token
-                 && item.UserId == userId
+                 item.Token == token   
                  && item.ExpiryAt > DateTime.UtcNow
                  && !item.IsUsed
                  && !item.IsRevoked);

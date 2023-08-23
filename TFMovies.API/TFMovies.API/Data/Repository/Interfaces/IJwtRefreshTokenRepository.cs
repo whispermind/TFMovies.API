@@ -4,5 +4,5 @@ namespace TFMovies.API.Data.Repository.Interfaces;
 
 public interface IJwtRefreshTokenRepository : IBaseRepository<JwtRefreshToken>
 {
-    public ValueTask<JwtRefreshToken> CheckTokenValidAsync(string token, string userId);
+    public Task<JwtRefreshToken?> GetActiveTokenAsync(string token);
 }

@@ -13,66 +13,94 @@ namespace TFMovies.API.Services.Implementations;
 public class UserSecretTokenService : IUserSecretTokenService
 {
     private readonly IUserSecretTokenRepository _userSecretTokenRepository;
-    private readonly ConfirmEmailTokenSettings _confirmEmailTokenSettings;
-    private readonly PasswordResetTokenSettings _passwordResetTokenSettings;
+    private readonly ISecretTokenSettings _confirmEmailTokenSettings;
+    private readonly ISecretTokenSettings _resetPasswordTokenSettings;
 
-    public UserSecretTokenService(IUserSecretTokenRepository userTokenRepository, IOptions<PasswordResetTokenSettings> passwordResetTokenSettings, IOptions<ConfirmEmailTokenSettings> confirmEmailTokenSettings)
+    public UserSecretTokenService(
+        IUserSecretTokenRepository userTokenRepository, 
+        IOptions<ConfirmEmailTokenSettings> confirmEmailTokenSettings,
+        IOptions<ResetPasswordTokenSettings> resetPasswordTokenSettings)
     {
         _userSecretTokenRepository = userTokenRepository;
-        _passwordResetTokenSettings = passwordResetTokenSettings.Value;
         _confirmEmailTokenSettings = confirmEmailTokenSettings.Value;
+        _resetPasswordTokenSettings = resetPasswordTokenSettings.Value;
     }
 
-    public async ValueTask<string> CheckSecretTokenAsync(string token, SecretTokenTypeEnum tokenType)
+    public async Task<UserSecretToken> FindByTokenValueAndTypeAsync(string token, SecretTokenTypeEnum tokenType)
     {
-        var userTokenDb = await _userSecretTokenRepository.FindValidByTypeAndValueAsync(token, tokenType);
+        var userTokenDb = await _userSecretTokenRepository.FindByTokenValueAndTypeAsync(token, tokenType);
 
         if (userTokenDb == null)
         {
             throw new BadRequestException(ErrorMessages.InvalidToken);
         }
-        
-        userTokenDb.IsUsed = true;
-        await _userSecretTokenRepository.UpdateAsync(userTokenDb);
-        
 
-        return userTokenDb.UserId;
+        return userTokenDb;
     }
 
-    public async Task<string> CreateAndStoreConfirmEmailTokenAsync(string userId)
+    public async Task ValidateAndConsumeSecretTokenAsync(UserSecretToken secretToken, bool setIsUsed)
     {
-        var token = Guid.NewGuid().ToString();
-        var expiryAt = TimeUtility.AddTime(DateTime.UtcNow, _confirmEmailTokenSettings.LifeTimeUnit, _confirmEmailTokenSettings.LifeTimeDuration);
-
-        await StoreTokenIntoDbAsync(userId, token, SecretTokenTypeEnum.ConfirmEmail, expiryAt);
-
-        return token;
-    }
-
-    public async Task<string> CreateAndStorePasswordRecoveryTokenAsync(string userId)
-    {
-        var token = Guid.NewGuid().ToString();
-        var expiryAt = TimeUtility.AddTime(DateTime.UtcNow, _passwordResetTokenSettings.LifeTimeUnit, _passwordResetTokenSettings.LifeTimeDuration);
-
-        await StoreTokenIntoDbAsync(userId, token, SecretTokenTypeEnum.PasswordReset, expiryAt);
-
-        return token;
-    }
-    private async Task StoreTokenIntoDbAsync(string userId, string token, SecretTokenTypeEnum tokenType, DateTime expiryAt)
-    {
-        var userTokenDb = new UserSecretToken
+        if (secretToken.IsUsed || secretToken.ExpiryAt < DateTime.UtcNow)
         {
-            UserId = userId,
-            Token = token,
-            TokenType = tokenType,
-            ExpiryAt = expiryAt
-        };
+            throw new BadRequestException(ErrorMessages.InvalidToken);
+        }
 
-        var result = await _userSecretTokenRepository.CreateAsync(userTokenDb);
+        if (setIsUsed)
+        {
+            secretToken.IsUsed = true;
+        }
+
+        await _userSecretTokenRepository.UpdateAsync(secretToken);        
+    }
+
+    public async Task<UserSecretToken> GenerateAndStoreSecretTokenAsync(string userId, SecretTokenTypeEnum tokenType)
+    {
+        var token = Guid.NewGuid().ToString();
+
+        var createdAt = DateTime.UtcNow;
+
+        var expiryAt = tokenType switch
+        {
+            SecretTokenTypeEnum.ConfirmEmail => CalculateTokenExpiryAt(createdAt, _confirmEmailTokenSettings),
+            SecretTokenTypeEnum.ResetPassword => CalculateTokenExpiryAt(createdAt, _resetPasswordTokenSettings),
+            _ => throw new InternalServerException(ErrorMessages.OperationFailed, new Exception(string.Format(ErrorMessages.OperationFailedDetails, "Calculating ExpiryAt for the SecretToken")))
+        };        
+
+        var secretTokenDb = await _userSecretTokenRepository.FindByUserIdAndTokenTypeAsync(userId, tokenType);
+
+        UserSecretToken result;
+
+        if (secretTokenDb == null)
+        {
+            secretTokenDb = new UserSecretToken
+            {
+                UserId = userId,
+                Token = token,
+                TokenType = tokenType,
+                CreatedAt = createdAt,
+                ExpiryAt = expiryAt
+            };
+
+           result = await _userSecretTokenRepository.CreateAsync(secretTokenDb);            
+        }
+        else
+        {
+            secretTokenDb.Token = token;
+            secretTokenDb.ExpiryAt = expiryAt;
+
+           result = await _userSecretTokenRepository.UpdateAsync(secretTokenDb);            
+        }
 
         if (result == null)
         {
             throw new InternalServerException(ErrorMessages.OperationFailed, new Exception(string.Format(ErrorMessages.OperationFailedDetails, "Storing the token into the DB.")));
         }
+
+        return secretTokenDb;
+    }
+
+    private DateTime CalculateTokenExpiryAt(DateTime dateTime, ISecretTokenSettings tokenSettings)
+    {
+        return TimeUtility.AddTime(dateTime, tokenSettings.LifeTimeUnit, tokenSettings.LifeTimeDuration);
     }
 }

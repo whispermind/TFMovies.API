@@ -10,14 +10,22 @@ public class UserSecretTokenRepository : BaseRepository<UserSecretToken>, IUserS
     public UserSecretTokenRepository(DataContext context) : base(context)
     { }
 
-    public async ValueTask<UserSecretToken> FindValidByTypeAndValueAsync(string token, SecretTokenTypeEnum tokenType)
+    public async Task<UserSecretToken?> FindByTokenValueAndTypeAsync(string token, SecretTokenTypeEnum tokenType)
     {
         var result = await _entities
              .FirstOrDefaultAsync(item =>
                  item.Token == token
-                 && item.TokenType == tokenType
-                 && item.ExpiryAt > DateTime.UtcNow
-                 && !item.IsUsed);
+                 && item.TokenType == tokenType);
+
+        return result;
+    }
+
+    public async Task<UserSecretToken?> FindByUserIdAndTokenTypeAsync(string userId, SecretTokenTypeEnum tokenType)
+    {
+        var result = await _entities
+             .FirstOrDefaultAsync(item =>
+                 item.UserId == userId
+                 && item.TokenType == tokenType);
 
         return result;
     }
