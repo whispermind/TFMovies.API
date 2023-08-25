@@ -29,8 +29,7 @@ public class BaseRepository<T> : IBaseRepository<T>
         await SaveChangesAsync();
 
         return updatedEntity;
-    }
-
+    } 
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

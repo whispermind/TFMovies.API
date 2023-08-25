@@ -21,7 +21,7 @@ public class UserRepository : IUserRepository
     {
         return await _userManager.FindByIdAsync(userId);
     }
-    public async ValueTask<User> FindByEmailAsync(string email)
+    public async Task<User> FindByEmailAsync(string email)
     {
         return await _userManager.FindByEmailAsync(email);
     }

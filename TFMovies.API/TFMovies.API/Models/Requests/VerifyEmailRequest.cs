@@ -2,8 +2,8 @@
 
 namespace TFMovies.API.Models.Requests;
 
-public class RefreshTokenRequest
-{   
-    public string RefreshToken { get; set; }
+public class VerifyEmailRequest
+{
+    [Required]
+    public string Token { get; set; }
 }
-

@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SendGrid.Extensions.DependencyInjection;
@@ -13,6 +11,7 @@ using TFMovies.API.Data;
 using TFMovies.API.Data.Entities;
 using TFMovies.API.Data.Repository.Implementations;
 using TFMovies.API.Data.Repository.Interfaces;
+using TFMovies.API.Integrations;
 using TFMovies.API.Middleware;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Services.Implementations;
@@ -26,21 +25,16 @@ builder.Logging.AddConsole();
 // Add services to the container.
 builder.Services.Configure<SendGridSettings>(builder.Configuration.GetSection("SendGridSettings"));
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
-builder.Services.Configure<ConfirmEmailTokenSettings>(builder.Configuration.GetSection("ConfirmEmailTokenSettings"));
-builder.Services.Configure<ResetPasswordTokenSettings>(builder.Configuration.GetSection("PasswordResetTokenSettings"));
+builder.Services.Configure<UserActionTokenSettings>(builder.Configuration.GetSection("UserActionTokenSettings"));
 builder.Services.Configure<UrlSettings>(builder.Configuration.GetSection("Urls"));
 
-builder.Services.AddScoped<IUserSecretTokenRepository, UserSecretTokenRepository>();
+builder.Services.AddScoped<IUserActionTokenRepository, UserActionTokenRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IJwtRefreshTokenRepository, JwtRefreshTokenRepository>();
-builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IUserSecretTokenService, UserSecretTokenService>();
-builder.Services.AddScoped<IUserAuthenticationService, UserAuthenticationService>();
-builder.Services.AddScoped<IUserRegistrationService, UserRegistrationService>();
-builder.Services.AddScoped<IUserPasswordService, UserPasswordService>();
-builder.Services.AddScoped<IUserEmailService, UserEmailService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -130,7 +124,9 @@ builder.Services.AddSendGrid(client =>
 
 var app = builder.Build();
 
-// add RequiredService factoru
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+// add RequiredService factory
 var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
 
 using (var scope = scopeFactory.CreateScope())
@@ -152,7 +148,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseMiddleware<ExceptionMiddleware>();
+app.UseCustomExceptionHandler(logger);
 
 //app.UseHttpsRedirection();
 

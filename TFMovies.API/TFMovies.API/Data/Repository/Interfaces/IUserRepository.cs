@@ -8,7 +8,7 @@ public interface IUserRepository
     //CRUD User
     public Task<IdentityResult> CreateAsync(User user, string password);
     public ValueTask<User> FindByIdAsync(string userId);
-    public ValueTask<User> FindByEmailAsync(string email);
+    public Task<User> FindByEmailAsync(string email);
     public Task<IdentityResult> UpdateAsync(User user);
     public Task<IdentityResult> DeleteAsync(User user);
 

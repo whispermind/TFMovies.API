@@ -3,10 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using TFMovies.API.Common.Constants;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Repository.Interfaces;
-using TFMovies.API.Exceptions;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Services.Interfaces;
 using TFMovies.API.Utils;
@@ -15,110 +12,64 @@ namespace TFMovies.API.Services.Implementations;
 
 public class JwtService : IJwtService
 {
-    private readonly JwtSettings _jwtSettings;
-    private readonly IJwtRefreshTokenRepository _jwtRefreshTokenRepository;
+    private readonly JwtSettings _jwtSettings;   
 
-    public JwtService(
-        IOptions<JwtSettings> jwtSettings, 
-        IJwtRefreshTokenRepository jwtRefreshTokenRepository)
+    public JwtService(IOptions<JwtSettings> jwtSettings)
     {
-        _jwtSettings = jwtSettings.Value;
-        _jwtRefreshTokenRepository = jwtRefreshTokenRepository;
+        _jwtSettings = jwtSettings.Value;        
     }  
 
-    public string GenerateAccessToken(IEnumerable<Claim> claims)
+    public string GenerateAccessToken(User user, IEnumerable<string> userRoles)
     {
         var expiryAt = TimeUtility.AddTime(DateTime.UtcNow, _jwtSettings.AccessTokenLifeTimeUnit, _jwtSettings.AccessTokenLifeTimeDuration);
+
+        var claims = new List<Claim>
+        {
+            new Claim("sub", user.Id),
+            new Claim("email", user.Email)
+        };
+
+        foreach (var role in userRoles)
+        {
+            claims.Add(new Claim(ClaimsIdentity.DefaultRoleClaimType, role));
+        }
 
         var token = CreateJwtToken(claims, _jwtSettings.ValidAudience, expiryAt);
 
         return token;
     }
 
-    public async Task<string> GenerateRefreshTokenAsync(string userId)
+    public RefreshToken GenerateRefreshTokenAsync()
     {
-        var createdAt = DateTime.UtcNow;
+        var created = DateTime.UtcNow;
 
-        var expiryAt = TimeUtility.AddTime(createdAt, _jwtSettings.RefreshTokenLifeTimeUnit, _jwtSettings.RefreshTokenLifeTimeDuration);
+        var expires = TimeUtility.AddTime(created, _jwtSettings.RefreshTokenLifeTimeUnit, _jwtSettings.RefreshTokenLifeTimeDuration);
 
         var refreshTokenId = Guid.NewGuid().ToString();
 
         var claims = new[] { new Claim("jti", refreshTokenId) };
 
-        var token = CreateJwtToken(claims, _jwtSettings.ValidIssuer, expiryAt);
+        var token = CreateJwtToken(claims, _jwtSettings.ValidIssuer, expires);
 
-        await StoreTokenIntoDbAsync(userId, token, expiryAt, createdAt);
+        var refreshToken = new RefreshToken
+        {            
+            Token = token,
+            Created = created,            
+            Expires = expires
+        };                
 
-        return token;
-    }
+        return refreshToken;
+    }   
 
-    public async Task ValidateAndMarkTokenAsync(string token, bool isRevoke = false)
-    {
-        var tokenDb = await _jwtRefreshTokenRepository.GetActiveTokenAsync(token);
-
-        if (tokenDb == null)
-        {
-            throw new UnauthorizedAccessException();
-        }        
-        
-        if (isRevoke)
-        {
-            tokenDb.IsRevoked = true; //for Logout
-        }
-        else
-        {
-            tokenDb.IsUsed = true;
-        }        
-
-        await _jwtRefreshTokenRepository.UpdateAsync(tokenDb);        
-    }
-
-    public ClaimsPrincipal? GetPrincipalFromToken(string token)
-    {
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = false,
-            ValidIssuer = _jwtSettings.ValidIssuer,
-            ValidAudience = _jwtSettings.ValidAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SymmetricSecurityKey))
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-
-        try
-        {
-            SecurityToken securityToken;
-
-            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
-
-            var jwtSecurityToken = securityToken as JwtSecurityToken;
-
-            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return null;
-            }
-
-            return principal;
-        }
-        catch (Exception)
-        {
-
-            throw new InternalServerException(ErrorMessages.OperationFailed, new Exception(string.Format(ErrorMessages.OperationFailedDetails, "Expired Access Token validation.")));
-        }
-    }
-
-    private string CreateJwtToken(IEnumerable<Claim> claims, string audience, DateTime expiryAt)
+    private string CreateJwtToken(IEnumerable<Claim> claims, string audience, DateTime expires)
     {
         var authSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_jwtSettings.SymmetricSecurityKey)
-        );
+            Encoding.UTF8.GetBytes(_jwtSettings.SymmetricSecurityKey));
 
         var descriptor = new JwtSecurityToken(
             _jwtSettings.ValidIssuer,
             audience,
-            expires: expiryAt,
+            expires: expires,
             claims: claims,
             signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
         );
@@ -127,23 +78,5 @@ public class JwtService : IJwtService
         var token = handler.WriteToken(descriptor);
 
         return token;
-    }
-
-    private async Task StoreTokenIntoDbAsync(string userId, string token, DateTime expiryAt, DateTime createdAt)
-    {
-        var userTokenDb = new JwtRefreshToken
-        {
-            UserId = userId,
-            Token = token,
-            CreatedAt = createdAt,
-            ExpiryAt = expiryAt
-        };
-
-        var result = await _jwtRefreshTokenRepository.CreateAsync(userTokenDb);
-
-        if (result == null)
-        {
-            throw new InternalServerException(ErrorMessages.OperationFailed, new Exception(string.Format(ErrorMessages.OperationFailedDetails, "Storing the Refresh token into the DB.")));
-        }
-    }    
+    }      
 }
