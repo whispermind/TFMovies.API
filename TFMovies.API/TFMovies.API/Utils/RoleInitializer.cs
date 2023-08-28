@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using System.Net;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Common.Enum;
 using TFMovies.API.Exceptions;
@@ -28,7 +29,7 @@ public class RoleInitializer
 
             if (!result.Succeeded)
             {
-                throw new InternalServerException(string.Format(ErrorMessages.OperationFailed, "creation role in Db"));
+                throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
             }
         }
     }

@@ -16,8 +16,7 @@ public static class ModelStateErrorResponseFactory
 
         var errorResponse = new ErrorResponse
         {
-            ErrorMessage = string.Join(" ", errors),
-            ErrorDetails = "Errors captured by InvalidModelStateResponseFactory."
+            ErrorMessage = string.Join(" ", errors)
         };
 
         return new BadRequestObjectResult(errorResponse);

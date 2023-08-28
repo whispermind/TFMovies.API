@@ -2,11 +2,11 @@
 
 public static class EmailTemplates
 {
-    public const string ConfirmEmailSubject = "Confirm Your Email";
+    public const string EmailVerifySubject = "Verify Your Email";
 
-    public const string PasswordRecoverySubject = "Password Recovery Request";
+    public const string PasswordResetSubject = "Password Recovery Request";
 
-    public const string ConfirmEmailBody = @"
+    public const string EmailVerifyBody = @"
         <p>Welcome!</p>        
         <p>{0},</p>
         <p>Please confirm your email by clicking <a href='{1}'>here</a>.</p>
@@ -16,7 +16,7 @@ public static class EmailTemplates
         <br>
         <p><i><strong>Regards, TFMovies</strong></i></p>";
 
-    public const string PasswordRecoveryBody = @"                
+    public const string PasswordResetBody = @"                
         <p>Hello {0},</p>
         <p>We received a request to reset your password.</p>
         <p><i>If you didn't make this request, you can safely ignore this email.</i></p>
