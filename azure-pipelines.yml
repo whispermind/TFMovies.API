@@ -20,11 +20,3 @@ steps:
       zipAfterPublish: true
   
   - task: PublishBuildArtifacts@1
-  
-#  - task: AzureWebApp@1
-#    inputs:
-#      azureSubscription: 'TechFabric Subscription 1 (3100c099-f7a3-4c34-a1cc-3e921121860a)'
-#      appType: 'webApp'
-#      appName: 'dev-api-tfmovies'
-#      package: '$(Build.ArtifactStagingDirectory)/Output/**/*.zip'
-#      deploymentMethod: 'auto'
