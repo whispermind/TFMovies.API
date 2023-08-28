@@ -9,7 +9,7 @@ using TFMovies.API.Services.Interfaces;
 namespace TFMovies.API.Controllers;
 
 
-[Route("tfmovies/users")]
+[Route("users")]
 [ApiController]
 [Produces("application/json")]
 public class UsersController : ControllerBase

@@ -105,8 +105,8 @@ public class UserService : IUserService
             newRefreshToken = _jwtService.GenerateRefreshTokenAsync();
         }
 
-        tokenDb.Created = newRefreshToken.Created;        
-        tokenDb.Expires = newRefreshToken.Expires;
+        tokenDb.CreatedAt = newRefreshToken.CreatedAt;        
+        tokenDb.ExpiresAt = newRefreshToken.ExpiresAt;
         tokenDb.Token = newRefreshToken.Token;
 
         await _refreshTokenRepository.UpdateAsync(tokenDb);        
@@ -316,8 +316,8 @@ public class UserService : IUserService
                 UserId = userId,
                 Token = token,
                 TokenType = tokenType,
-                Created = created,
-                Expires = expires
+                CreatedAt = created,
+                ExpiresAt = expires
             };
 
             await _actionTokenRepository.CreateAsync(tokenDb);
@@ -325,8 +325,8 @@ public class UserService : IUserService
         else
         {
             tokenDb.Token = token;
-            tokenDb.Expires = expires;
-            tokenDb.Created = created;
+            tokenDb.ExpiresAt = expires;
+            tokenDb.CreatedAt = created;
 
             await _actionTokenRepository.UpdateAsync(tokenDb);
         }

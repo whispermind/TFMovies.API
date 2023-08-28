@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using System.Net;
 using System.Text.Json;
+using TFMovies.API.Common.Constants;
 using TFMovies.API.Exceptions;
 using TFMovies.API.Models.Responses;
 
@@ -20,6 +21,7 @@ public static class ExceptionMiddlewareExtensions
                 {
                     HttpStatusCode statusCode;
                     string logMessage = GetLogMessage(context, exceptionFeature);
+                    var errorMessage = exceptionFeature.Error.Message;
 
                     switch (exceptionFeature.Error)
                     {
@@ -34,11 +36,12 @@ public static class ExceptionMiddlewareExtensions
                             break;
                         default:
                             statusCode = HttpStatusCode.InternalServerError;
+                            errorMessage = ErrorMessages.UnexpectedError;
                             break;
                     }
 
                     logger.LogError(exceptionFeature.Error, logMessage);
-                    await WriteExceptionResponseAsync(context, exceptionFeature.Error.Message, statusCode);
+                    await WriteExceptionResponseAsync(context, errorMessage, statusCode);
                 }
             });
         });

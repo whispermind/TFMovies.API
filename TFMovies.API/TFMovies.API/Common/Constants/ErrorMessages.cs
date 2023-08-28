@@ -20,9 +20,9 @@ public static class ErrorMessages
     public const string UnconfirmedEmail = "Email address has not been confirmed yet. Please check your inbox for the confirmation link.";
 
 
-    //For Inner exception
-    public const string UserWithoutRoles = "User has no roles.";
-    public const string OperationFailedDetails = "An error occurred during {0}. "; //0 - some operation/process
-    public const string RefreshTokenUserNotFound = "No user associated with the provided refresh token.";
-    public const string SendgridProblem = "Sendgrid problem: {0} - {1}."; //0-StatusCode, 1 - SendgridException
+    ////For Inner exception
+    //public const string UserWithoutRoles = "User has no roles.";
+    //public const string OperationFailedDetails = "An error occurred during {0}. "; //0 - some operation/process
+    //public const string RefreshTokenUserNotFound = "No user associated with the provided refresh token.";
+    //public const string SendgridProblem = "Sendgrid problem: {0} - {1}."; //0-StatusCode, 1 - SendgridException
 }

@@ -54,8 +54,8 @@ public class JwtService : IJwtService
         var refreshToken = new RefreshToken
         {            
             Token = token,
-            Created = created,            
-            Expires = expires
+            CreatedAt = created,            
+            ExpiresAt = expires
         };                
 
         return refreshToken;
