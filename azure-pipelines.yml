@@ -15,7 +15,7 @@ steps:
     inputs:
       command: 'publish'
       publishWebProjects: false
-      projects: 'TFMovies.API/TFMovies.API.csproj'
+      projects: 'TFMovies.API/TFMovies.API/TFMovies.API.csproj'
       arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
       zipAfterPublish: true
   
