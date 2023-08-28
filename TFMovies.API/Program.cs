@@ -63,8 +63,8 @@ builder.Services.AddSwaggerGen(options =>
             {
                 Reference = new OpenApiReference
                 {
-                    Type=ReferenceType.SecurityScheme,
-                    Id="Bearer"
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
                 }
             },
             new List<string>()
@@ -94,33 +94,30 @@ builder.Services.AddIdentityCore<User>()
 
 //add JWT
 builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidIssuer = builder.Configuration["JwtSettings:ValidIssuer"],
-        ValidateAudience = true,
-        ValidAudience = builder.Configuration["JwtSettings:ValidAudience"],
-        ValidateIssuerSigningKey = true,
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["JwtSettings:ValidIssuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["JwtSettings:ValidAudience"],
+            ValidateIssuerSigningKey = true,
 
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SymmetricSecurityKey"])
-        ),
-        ValidateLifetime = true
-    };
-});
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SymmetricSecurityKey"])
+            ),
+            ValidateLifetime = true
+        };
+    });
 
 //add SendGrid
-builder.Services.AddSendGrid(client =>
-{
-    client.ApiKey = builder.Configuration["SendGridSettings:ApiKey"];
-});
+builder.Services.AddSendGrid(client => { client.ApiKey = builder.Configuration["SendGridSettings:ApiKey"]; });
 
 var app = builder.Build();
 
@@ -139,14 +136,9 @@ using (var scope = scopeFactory.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "TFMoviesAPI V1");
-    });
-}
+
+app.UseSwagger();
+app.UseSwaggerUI(options => { options.SwaggerEndpoint("/swagger/v1/swagger.json", "TFMoviesAPI V1"); });
 
 app.UseCustomExceptionHandler(logger);
 
