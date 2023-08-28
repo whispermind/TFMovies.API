@@ -133,14 +133,14 @@ var app = builder.Build();
 // add RequiredService factoru
 var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
 
-using (var scope = scopeFactory.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<DataContext>();
-    context.Database.Migrate();
-
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    await RoleInitializer.InitializeRoles(roleManager);
-}
+// using (var scope = scopeFactory.CreateScope())
+// {
+//     var context = scope.ServiceProvider.GetRequiredService<DataContext>();
+//     context.Database.Migrate();
+//
+//     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+//     await RoleInitializer.InitializeRoles(roleManager);
+// }
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
