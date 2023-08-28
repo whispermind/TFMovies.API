@@ -34,7 +34,7 @@ public class UsersController : ControllerBase
     ///     POST /tfmovies/users/login
     ///     {
     ///       "email": "john.doe@example.com",
-    ///       "Password": "34Jvqt+K"
+    ///       "password": "34Jvqt+K"
     ///     }
     /// </remarks>
     [HttpPost("login")]
