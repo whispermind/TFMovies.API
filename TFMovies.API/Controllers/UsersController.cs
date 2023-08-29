@@ -31,7 +31,7 @@ public class UsersController : ControllerBase
     /// <remarks>
     /// Example:
     ///
-    ///     POST /tfmovies/users/login
+    ///     POST /users/login
     ///     {
     ///       "email": "john.doe@example.com",
     ///       "password": "34Jvqt+K"
@@ -61,7 +61,7 @@ public class UsersController : ControllerBase
     /// <remarks>
     /// Example:
     ///
-    ///     POST /tfmovies/users/refresh-token
+    ///     POST /users/refresh-token
     ///     {
     ///         "accessToken": "current_access_token",
     ///         "refreshToken": "current_refresh_token"
@@ -91,7 +91,7 @@ public class UsersController : ControllerBase
     /// <remarks>
     /// Example:
     /// 
-    /// POST /tfmovies/users/signup
+    /// POST /users/signup
     /// {
     ///   "nickname": "Jonny",
     ///   "email": "john.doe@example.com",
@@ -122,7 +122,7 @@ public class UsersController : ControllerBase
     /// <remarks>
     /// Example:
     ///     
-    ///     POST /tfmovies/users/verify-email
+    ///     POST /users/verify-email
     ///     {     
     ///       "token": "sample_confirmation_token_string"
     ///     }     
@@ -148,7 +148,7 @@ public class UsersController : ControllerBase
     /// <remarks>
     /// Example:
     ///    
-    ///      POST /tfmovies/users/send-activation-email
+    ///      POST /users/send-activation-email
     ///     {     
     ///       "email": "john.doe@example.com"
     ///     }
@@ -176,7 +176,7 @@ public class UsersController : ControllerBase
     /// <remarks>
     /// Example:
     ///
-    ///     POST /tfmovies/users/forgot-password
+    ///     POST /users/forgot-password
     ///     {
     ///         "email": "john.doe@example.com"         
     ///     }
@@ -203,7 +203,7 @@ public class UsersController : ControllerBase
     /// <remarks>
     /// Example:
     ///     
-    ///     POST /tfmovies/users/validate-reset-token
+    ///     POST /users/validate-reset-token
     ///     {     
     ///       "token": "sample_reset_token_string"
     ///     }     
@@ -228,7 +228,7 @@ public class UsersController : ControllerBase
     /// <remarks>
     /// Example:
     ///     
-    ///     POST /tfmovies/users/reset-password
+    ///     POST /users/reset-password
     ///     {
     ///       "email": "user@example.com",
     ///       "token": "sample_reset_token_string",
