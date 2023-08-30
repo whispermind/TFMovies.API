@@ -236,7 +236,7 @@ public class UserService : IUserService
     {
         var actionToken = await UpsertActionTokenAsync(user.Id, tokenType);
 
-        var link = $"{callBackUrl}?token={actionToken.Token}";
+        var link = $"{callBackUrl}/{actionToken.Token}";
 
         var tokenSettings = GetTokenSettings(tokenType);
 

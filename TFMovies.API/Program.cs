@@ -26,7 +26,7 @@ builder.Logging.AddConsole();
 builder.Services.Configure<SendGridSettings>(builder.Configuration.GetSection("SendGridSettings"));
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<UserActionTokenSettings>(builder.Configuration.GetSection("UserActionTokenSettings"));
-builder.Services.Configure<UrlSettings>(builder.Configuration.GetSection("Urls"));
+builder.Services.Configure<WebConfig>(builder.Configuration.GetSection("WebConfig"));
 
 builder.Services.AddScoped<IUserActionTokenRepository, UserActionTokenRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
