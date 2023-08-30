@@ -6,6 +6,9 @@ public static class EmailTemplates
 
     public const string PasswordResetSubject = "Password Recovery Request";
 
+    public const string PasswordSuccessfullyResetSubject = "Password Successfully Changed";
+    
+
     public const string EmailVerifyBody = @"
         <p>Welcome!</p>        
         <p>{0},</p>
@@ -26,4 +29,14 @@ public static class EmailTemplates
         <p><strong>After this period, you'll need to request a new one if you still wish to reset your password.</strong></p>         
         <br>
         <p><i><strong>Regards, TFMovies</strong></i></p>";
+
+    public const string PasswordSuccessfullyResetBody = @"
+        <p>Hello {0},</p>
+        <p>Your password has been successfully reset.</p>
+        <br>
+        <p><strong><i>If you didn't make this change or if you believe an unauthorized person has accessed your account, please reset your password immediately and contact our support team.</i></strong></p>
+        <p>To keep your account safe, always ensure that you're using a strong and unique password, and never share it with anyone.</p>
+        <br>
+        <p><i>If you face any issues or have any questions, feel free to reach out to our support team. We're here to help!</i></p>        
+        <p><i><strong>Regards, TFMovies</strong></i></p>";    
 }

@@ -119,6 +119,16 @@ builder.Services.AddAuthentication(options =>
 //add SendGrid
 builder.Services.AddSendGrid(client => { client.ApiKey = builder.Configuration["SendGridSettings:ApiKey"]; });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
@@ -140,9 +150,11 @@ using (var scope = scopeFactory.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI(options => { options.SwaggerEndpoint("/swagger/v1/swagger.json", "TFMoviesAPI V1"); });
 
-app.UseCustomExceptionHandler(logger);
-
 //app.UseHttpsRedirection();
+
+app.UseCors();
+
+app.UseCustomExceptionHandler(logger);
 
 app.UseAuthentication();
 app.UseAuthorization();
