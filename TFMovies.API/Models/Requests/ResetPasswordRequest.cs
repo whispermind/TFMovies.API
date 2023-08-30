@@ -4,10 +4,7 @@ using TFMovies.API.Common.Constants;
 namespace TFMovies.API.Models.Requests;
 
 public class ResetPasswordRequest
-{
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; }
+{  
 
     [Required]
     public string Token { get; set; }

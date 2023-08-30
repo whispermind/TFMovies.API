@@ -62,8 +62,7 @@ public class UsersController : ControllerBase
     /// Example:
     ///
     ///     POST /users/refresh-token
-    ///     {
-    ///         "accessToken": "current_access_token",
+    ///     {         
     ///         "refreshToken": "current_refresh_token"
     ///     }
     ///
@@ -223,14 +222,13 @@ public class UsersController : ControllerBase
     /// <summary>
     /// Initiates the password recovery process.
     /// </summary>
-    /// <param name="model">The request containing the user's email, reset token and the new password details.</param>
+    /// <param name="model">The request containing the reset token and the new password details.</param>
     /// <returns>Status 200 if the password recovery is successful, otherwise returns an appropriate error status.</returns>
     /// <remarks>
     /// Example:
     ///     
     ///     POST /users/reset-password
-    ///     {
-    ///       "email": "user@example.com",
+    ///     {  
     ///       "token": "sample_reset_token_string",
     ///       "newPassword": "34Jvqt+K",
     ///       "confirmPassword": "34Jvqt+K"

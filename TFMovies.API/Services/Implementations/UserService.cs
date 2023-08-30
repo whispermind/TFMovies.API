@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using System.Net;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Common.Enum;
@@ -40,14 +41,7 @@ public class UserService : IUserService
     }
     public async ValueTask<JwtTokensResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAddress)
     {
-        var email = model.Email.Trim().ToLower();
-
-        var userDb = await _userRepository.FindByEmailAsync(email);
-
-        if (userDb == null)
-        {
-            throw new KeyNotFoundException(ErrorMessages.UserNotFound);
-        }
+        var userDb = await GetUserOrThrowAsync(email: model.Email);
 
         var isPasswordValid = await _userRepository.CheckPasswordAsync(userDb, model.Password);
 
@@ -58,7 +52,7 @@ public class UserService : IUserService
 
         if (!userDb.EmailConfirmed)
         {
-            await SendEmailWithActionTokenAsync(userDb, ActionTokenTypeEnum.EmailVerify, callBackUrl);
+            await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl);
 
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.UnconfirmedEmail);
         }
@@ -67,91 +61,68 @@ public class UserService : IUserService
 
         var accessToken = _jwtService.GenerateAccessToken(userDb, userRoles);
 
-        var refreshToken = _jwtService.GenerateRefreshTokenAsync();
+        var refreshToken = await GenerateUniqueRefreshToken();
 
-        refreshToken.UserId = userDb.Id;
-        refreshToken.CreatedByIp = ipAddress;
+        refreshToken.UserId = userDb.Id;        
+        refreshToken.CreatedByIp = ipAddress;        
 
         await _refreshTokenRepository.CreateAsync(refreshToken);
 
-        var result = new JwtTokensResponse
+        return new JwtTokensResponse
         {
             AccessToken = accessToken,
             RefreshToken = refreshToken.Token
-        };
-
-        return result;
+        };        
     }
 
     public async ValueTask<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model, string ipAddress)
     {
-        var tokenDb = await _refreshTokenRepository.FindByTokenAndIpAsync(model.RefreshToken, ipAddress);
-        
-        if (tokenDb == null || !tokenDb.IsActive)
-        {
-            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.InvalidToken);
-        }
+        var tokenDb = await ValidateRefreshToken(model.RefreshToken, ipAddress);
 
-        var userDb = await _userRepository.FindByIdAsync(tokenDb.UserId);
+        var userDb = await GetUserOrThrowAsync(userId: tokenDb.UserId);        
 
         var userRoles = await _userRepository.GetRolesAsync(userDb);
 
         var newAccessToken = _jwtService.GenerateAccessToken(userDb, userRoles);        
 
-        var newRefreshToken = _jwtService.GenerateRefreshTokenAsync();
+        var newRefreshToken = await GenerateUniqueRefreshToken();       
 
-        if (await _refreshTokenRepository.FindByTokenAsync(newRefreshToken.Token) != null)
-        {
-            newRefreshToken = _jwtService.GenerateRefreshTokenAsync();
-        }
+        await UpdateTokenDbWithNewRefreshToken(tokenDb, newRefreshToken);
 
-        tokenDb.CreatedAt = newRefreshToken.CreatedAt;        
-        tokenDb.ExpiresAt = newRefreshToken.ExpiresAt;
-        tokenDb.Token = newRefreshToken.Token;
-
-        await _refreshTokenRepository.UpdateAsync(tokenDb);        
-
-        var result = new JwtTokensResponse
+        return new JwtTokensResponse
         {
             AccessToken = newAccessToken,
             RefreshToken = newRefreshToken.Token
-        };
-
-        return result;
+        };        
     }
 
     public async Task RegisterAsync(RegisterRequest model, string callBackUrl)
-    {
+    {       
+        await GetUserOrThrowAsync(email: model.Email, throwIfUserExists: true);
+
         var email = model.Email.Trim().ToLower();
-        var userDb = await _userRepository.FindByEmailAsync(email);
 
-        if (userDb != null)
-        {
-            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.UserAlreadyExists);
-        }
-
-        userDb = new User
+        var newUser = new User
         {
             UserName = email,
             Email = email,
             Nickname = model.Nickname
         };
 
-        var result = await _userRepository.CreateAsync(userDb, model.Password);
+        var result = await _userRepository.CreateAsync(newUser, model.Password);
+        
+        EnsureSuccess(result);
+
+        result = await _userRepository.AddToRoleAsync(newUser, UserRoleEnum.User.ToString());
+
         if (!result.Succeeded)
         {
+            await _userRepository.DeleteAsync(newUser);
+
             throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
         }
 
-        result = await _userRepository.AddToRoleAsync(userDb, UserRoleEnum.User.ToString());
-        if (!result.Succeeded)
-        {
-            await _userRepository.DeleteAsync(userDb);
-
-            throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
-        }
-
-        await SendEmailWithActionTokenAsync(userDb, ActionTokenTypeEnum.EmailVerify, callBackUrl);
+        await SendEmailByEmailSubjectAsync(newUser, EmailTemplates.EmailVerifySubject, callBackUrl);
     }
 
     public async Task VerifyEmailAsync(VerifyEmailRequest model)
@@ -162,12 +133,8 @@ public class UserService : IUserService
         {
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.InvalidToken);
         }
-        var linkedUser = await _userRepository.FindByIdAsync(actionTokenDb.UserId);
 
-        if (linkedUser == null)
-        {
-            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.InvalidToken);
-        }
+        var linkedUser = await GetUserOrThrowAsync(userId: actionTokenDb.UserId);        
 
         if (linkedUser.EmailConfirmed)
         {
@@ -182,40 +149,24 @@ public class UserService : IUserService
 
         var result = await _userRepository.UpdateAsync(linkedUser);
 
-        if (!result.Succeeded)
-        {
-            throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
-        }
+        EnsureSuccess(result);
     }
 
     public async Task SendActivationEmailAsync(ActivateEmailRequest model, string callBackUrl)
     {
-        var email = model.Email.Trim().ToLower();
+        var userDb = await GetUserOrThrowAsync(email: model.Email);
 
-        var userDb = await _userRepository.FindByEmailAsync(email);
-
-        if (userDb == null)
-        {
-            throw new KeyNotFoundException(ErrorMessages.UserNotFound);
-        }
-
-        await SendEmailWithActionTokenAsync(userDb, ActionTokenTypeEnum.EmailVerify, callBackUrl);
+        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl);
     }
+
     public async Task ForgotPasswordAsync(ForgotPasswordRequest model, string callBackUrl)
     {
-        var email = model.Email.Trim().ToLower();
+        var userDb = await GetUserOrThrowAsync(email: model.Email);
 
-        var userDb = await _userRepository.FindByEmailAsync(email);
-
-        if (userDb == null)
-        {
-            throw new KeyNotFoundException(ErrorMessages.UserNotFound);
-        }
-
-        await SendEmailWithActionTokenAsync(userDb, ActionTokenTypeEnum.PasswordReset, callBackUrl);
+        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordResetSubject, callBackUrl);       
     }
     
-    public async Task ValidateResetTokenAsync(string token, bool setUsed)
+    public async ValueTask<UserActionToken> ValidateResetTokenAsync(string token, bool setUsed)
     {
         var actionTokenDb = await _actionTokenRepository.FindByTokenValueAndTypeAsync(token, ActionTokenTypeEnum.PasswordReset);
 
@@ -229,21 +180,16 @@ public class UserService : IUserService
             actionTokenDb.IsUsed = true;
 
             await _actionTokenRepository.UpdateAsync(actionTokenDb);
-        }                
+        }
+
+        return actionTokenDb;
     }
 
     public async Task ResetPasswordAsync(ResetPasswordRequest model)
     {
-        await ValidateResetTokenAsync(model.Token, true);
+        var actionTokenDb = await ValidateResetTokenAsync(model.Token, true);        
 
-        var email = model.Email.Trim().ToLower();
-
-        var userDb = await _userRepository.FindByEmailAsync(email);
-
-        if (userDb == null)
-        {
-            throw new KeyNotFoundException(ErrorMessages.UserNotFound);
-        }
+        var userDb = await GetUserOrThrowAsync(userId: actionTokenDb.UserId);       
 
         var hashedPassword = _userRepository.HashPassword(userDb, model.NewPassword);
 
@@ -251,40 +197,53 @@ public class UserService : IUserService
 
         var result = await _userRepository.UpdateAsync(userDb);
 
-        if (!result.Succeeded)
-        {
-            throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
-        }
+        EnsureSuccess(result);
+
+        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject);
     }
 
-    private async Task SendEmailWithActionTokenAsync(User user, ActionTokenTypeEnum tokenType, string callBackUrl)
+    //helpers
+    private async Task SendEmailByEmailSubjectAsync(User user, string emailSubject, string? callBackUrl = null)
     {
-        var actionToken = await UpsertUserTokenAsync(user.Id, tokenType);
+        string emailContent;
+        string link;
+        string expiresAfter;
 
-        var link = $"{callBackUrl}?token={actionToken.Token}?email={user.Email}";
-
-        var tokenSettings = GetTokenSettings(actionToken.TokenType);
-
-        var tokenDuration = $"{tokenSettings.Value} {TimeUnitEnumToFriendlyString(tokenSettings.Unit, tokenSettings.Value)}";
-
-        string emailTemplate;
-        string emailSubject;
-
-        if (actionToken.TokenType == ActionTokenTypeEnum.PasswordReset)
+        switch (emailSubject)
         {
-            emailTemplate = EmailTemplates.PasswordResetBody;
-            emailSubject = EmailTemplates.PasswordResetSubject;
+            case EmailTemplates.EmailVerifySubject:
+                (link, expiresAfter) = await GenerateTokenDetailsAsync(user, ActionTokenTypeEnum.EmailVerify, callBackUrl);
+                emailContent = string.Format(EmailTemplates.EmailVerifyBody, user.Nickname, link, expiresAfter);
+                break;
+
+            case EmailTemplates.PasswordResetSubject:
+                (link, expiresAfter) = await GenerateTokenDetailsAsync(user, ActionTokenTypeEnum.PasswordReset, callBackUrl);
+                emailContent = string.Format(EmailTemplates.PasswordResetBody, user.Nickname, link, expiresAfter);               
+                break;
+
+            case EmailTemplates.PasswordSuccessfullyResetSubject:
+                emailContent = string.Format(EmailTemplates.PasswordSuccessfullyResetBody, user.Nickname);
+                break;
+
+            default:
+                throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
         }
-        else
-        {
-            emailTemplate = EmailTemplates.EmailVerifyBody;
-            emailSubject = EmailTemplates.EmailVerifySubject;
-        }        
-
-        var emailContent = string.Format(emailTemplate, user.Nickname, link, tokenDuration);        
 
         await _emailService.SendEmailAsync(user.Email, emailSubject, emailContent);
     }
+
+    private async Task<(string Link, string Duration)> GenerateTokenDetailsAsync(User user, ActionTokenTypeEnum tokenType, string callBackUrl)
+    {
+        var actionToken = await UpsertActionTokenAsync(user.Id, tokenType);
+
+        var link = $"{callBackUrl}?token={actionToken.Token}";
+
+        var tokenSettings = GetTokenSettings(tokenType);
+
+        var expiresAfter = $"{tokenSettings.Value} {TimeUnitEnumToFriendlyString(tokenSettings.Unit, tokenSettings.Value)}";
+
+        return (link, expiresAfter);
+    }    
     
     private static string TimeUnitEnumToFriendlyString(TimeUnitEnum unit, int duration)
     {
@@ -297,7 +256,8 @@ public class UserService : IUserService
 
         return baseStr;
     }
-    private async Task<UserActionToken> UpsertUserTokenAsync(string userId, ActionTokenTypeEnum tokenType)
+
+    private async Task<UserActionToken> UpsertActionTokenAsync(string userId, ActionTokenTypeEnum tokenType)
     {
         var token = await GenerateActionTokenAsync();
 
@@ -327,6 +287,7 @@ public class UserService : IUserService
             tokenDb.Token = token;
             tokenDb.ExpiresAt = expires;
             tokenDb.CreatedAt = created;
+            tokenDb.IsUsed = false;
 
             await _actionTokenRepository.UpdateAsync(tokenDb);
         }
@@ -338,6 +299,7 @@ public class UserService : IUserService
         var token = Guid.NewGuid().ToString();
 
         var tokenIsUnique = !await _actionTokenRepository.HasTokenAsync(token);
+        
         if (!tokenIsUnique)
         {
             return await GenerateActionTokenAsync();
@@ -353,5 +315,76 @@ public class UserService : IUserService
             ActionTokenTypeEnum.PasswordReset => _actionTokenSettings.PasswordResetDuration,
             _ => throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed)
         };
-    }    
+    }
+
+    private async Task<User> GetUserOrThrowAsync(string? userId=null, string? email=null, bool throwIfUserExists = false)
+    {
+        User? userDb = null;
+
+        if (userId != null)
+        {
+            userDb = await _userRepository.FindByIdAsync(userId);
+        }
+        else if (email != null)
+        {
+            email = email.Trim().ToLower();
+
+            userDb = await _userRepository.FindByEmailAsync(email);
+        }
+
+        if (throwIfUserExists && userDb != null)
+        {
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.UserAlreadyExists);
+        }
+
+        if (!throwIfUserExists && userDb == null)
+        {
+            throw new KeyNotFoundException(ErrorMessages.UserNotFound);
+        }
+
+        return userDb;
+    }
+
+    private static void EnsureSuccess(IdentityResult result)
+    {
+        if (!result.Succeeded)
+        {
+            throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
+        }
+    }
+
+    private async ValueTask<RefreshToken> ValidateRefreshToken(string token, string ipAddress)
+    {
+        var tokenDb = await _refreshTokenRepository.FindByTokenAndIpAsync(token, ipAddress);
+        
+        if (tokenDb == null || !tokenDb.IsActive)
+        {
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.InvalidToken);
+        }
+
+        return tokenDb;
+    }
+
+    private async ValueTask<RefreshToken> GenerateUniqueRefreshToken()
+    {
+        RefreshToken newToken;
+
+        do
+        {
+            newToken = _jwtService.GenerateRefreshTokenAsync();
+        }
+        while (await _refreshTokenRepository.FindByTokenAsync(newToken.Token) != null);
+
+        return newToken;
+    }
+
+    private async Task UpdateTokenDbWithNewRefreshToken(RefreshToken tokenDb, RefreshToken newRefreshToken)
+    {
+        tokenDb.CreatedAt = newRefreshToken.CreatedAt;
+        tokenDb.ExpiresAt = newRefreshToken.ExpiresAt;
+        tokenDb.Token = newRefreshToken.Token;
+
+        await _refreshTokenRepository.UpdateAsync(tokenDb);
+    }
+
 }
