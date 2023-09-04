@@ -54,6 +54,31 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// User logout.
+    /// </summary>
+    /// <param name="model">Access and Refresh Tokens.</param>
+    /// <returns>Status 200 if successful.</returns>
+    /// <remarks>
+    /// Example:
+    ///
+    ///     POST /users/logout
+    ///     {
+    ///       "accessToken": "current_access_token",
+    ///       "refreshToken": "current_refresh_token"
+    ///     }
+    /// </remarks>
+    [HttpPost("logout")]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]   
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> LogoutAsync([FromBody] LogoutRequest model)
+    {
+        await _userService.LogoutAsync(model);
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Refreshes the JWT tokens using a valid refresh token.
     /// </summary>
     /// <param name="model">The request model containing the access and refresh tokens.</param>
