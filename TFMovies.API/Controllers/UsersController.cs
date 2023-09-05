@@ -15,12 +15,12 @@ namespace TFMovies.API.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
-    private readonly UrlSettings _urlSettings;
+    private readonly WebConfig _webConfig;
 
-    public UsersController(IUserService userServicee, IOptions<UrlSettings> urlSettings)
+    public UsersController(IUserService userServicee, IOptions<WebConfig> webConfig)
     {
         _userService = userServicee;
-        _urlSettings = urlSettings.Value;
+        _webConfig = webConfig.Value;
     }
 
     /// <summary>
@@ -51,6 +51,31 @@ public class UsersController : ControllerBase
         var response = await _userService.LoginAsync(model, callBackUrl, ipAddress);       
 
         return Ok(response);
+    }
+
+    /// <summary>
+    /// User logout.
+    /// </summary>
+    /// <param name="model">Access and Refresh Tokens.</param>
+    /// <returns>Status 200 if successful.</returns>
+    /// <remarks>
+    /// Example:
+    ///
+    ///     POST /users/logout
+    ///     {
+    ///       "accessToken": "current_access_token",
+    ///       "refreshToken": "current_refresh_token"
+    ///     }
+    /// </remarks>
+    [HttpPost("logout")]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]   
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> LogoutAsync([FromBody] LogoutRequest model)
+    {
+        await _userService.LogoutAsync(model);
+
+        return Ok();
     }
 
     /// <summary>
@@ -256,10 +281,10 @@ public class UsersController : ControllerBase
             return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty;
     }
     
-    private string GenerateVerifyEmailUrl() => $"{GetUrlDomain()}{Url.RouteUrl("VerifyEmail")}";
-    private string GenerateValidateResetTokenUrl() => $"{GetUrlDomain()}{Url.RouteUrl("ValidateResetToken")}";
+    private string GenerateVerifyEmailUrl() => $"{ExtractOriginOrDefault()}/signup";
+    private string GenerateValidateResetTokenUrl() => $"{ExtractOriginOrDefault()}/passrecovery";
 
-    private string GetUrlDomain()
+    private string ExtractOriginOrDefault()
     {
         if (Request.Headers.TryGetValue("Origin", out var originValues) && originValues.Count > 0)
         {
@@ -267,7 +292,7 @@ public class UsersController : ControllerBase
         }
         else
         {
-            return _urlSettings.Domain;
+            return _webConfig.DefaultSiteUrl;
         }
     }
 }

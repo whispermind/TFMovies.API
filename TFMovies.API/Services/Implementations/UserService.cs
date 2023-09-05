@@ -39,7 +39,7 @@ public class UserService : IUserService
         _actionTokenSettings = actionTokenSettings.Value;
         _emailService = emailService;
     }
-    public async ValueTask<JwtTokensResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAddress)
+    public async ValueTask<LoginResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAddress)
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
@@ -57,7 +57,14 @@ public class UserService : IUserService
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.UnconfirmedEmail);
         }
 
-        var userRoles = await _userRepository.GetRolesAsync(userDb);        
+        var userRoles = await _userRepository.GetRolesAsync(userDb);
+
+        var userRole = userRoles.FirstOrDefault();
+
+        if (userRoles == null)
+        {
+            userRole = "Undefined";
+        }       
 
         var accessToken = _jwtService.GenerateAccessToken(userDb, userRoles);
 
@@ -68,11 +75,24 @@ public class UserService : IUserService
 
         await _refreshTokenRepository.CreateAsync(refreshToken);
 
-        return new JwtTokensResponse
+        return new LoginResponse
         {
+            Nickname = userDb.Nickname,
+            Role = userRole,
             AccessToken = accessToken,
             RefreshToken = refreshToken.Token
         };        
+    }
+
+    public async Task LogoutAsync(LogoutRequest model)
+    {
+        var tokenDb = await _refreshTokenRepository.FindByTokenAsync(model.RefreshToken);
+        
+        if (tokenDb != null) 
+        {
+            tokenDb.RevokedAt = DateTime.UtcNow;
+            await _refreshTokenRepository.UpdateAsync(tokenDb);
+        }
     }
 
     public async ValueTask<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model, string ipAddress)
@@ -236,7 +256,7 @@ public class UserService : IUserService
     {
         var actionToken = await UpsertActionTokenAsync(user.Id, tokenType);
 
-        var link = $"{callBackUrl}?token={actionToken.Token}";
+        var link = $"{callBackUrl}/{actionToken.Token}";
 
         var tokenSettings = GetTokenSettings(tokenType);
 

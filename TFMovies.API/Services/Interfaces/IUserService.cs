@@ -6,7 +6,8 @@ namespace TFMovies.API.Services.Interfaces;
 
 public interface IUserService
 {
-    public ValueTask<JwtTokensResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAdress);
+    public ValueTask<LoginResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAdress);
+    public Task LogoutAsync(LogoutRequest model);
     public ValueTask<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model, string ipAdress);    
     public Task RegisterAsync(RegisterRequest model, string callBackUrl);
     public Task VerifyEmailAsync(VerifyEmailRequest model);
