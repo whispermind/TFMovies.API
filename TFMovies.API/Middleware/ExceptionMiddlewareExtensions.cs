@@ -19,12 +19,6 @@ public static class ExceptionMiddlewareExtensions
 
                 if (exceptionFeature != null)
                 {
-                    context.Features.Set<IExceptionHandlerFeature>(new ExceptionHandlerFeature
-                    {
-                        Error = exceptionFeature.Error,
-                        Path = exceptionFeature.Path
-                    });
-
                     HttpStatusCode statusCode;
                     string logMessage = GetLogMessage(context, exceptionFeature);
                     var errorMessage = exceptionFeature.Error.Message;

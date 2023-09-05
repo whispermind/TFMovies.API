@@ -27,7 +27,7 @@ public class UsersController : ControllerBase
     /// User login.
     /// </summary>
     /// <param name="model">User login credentials.</param>
-    /// <returns>Status 200 and the pair of Access-Refresh tokens if successful.</returns>
+    /// <returns>Status 200 and info of current user and the pair of Access-Refresh tokens if successful.</returns>
     /// <remarks>
     /// Example:
     ///
@@ -38,7 +38,7 @@ public class UsersController : ControllerBase
     ///     }
     /// </remarks>
     [HttpPost("login")]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(JwtTokensResponse))]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(LoginResponse))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(404, "NOT_FOUND", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
