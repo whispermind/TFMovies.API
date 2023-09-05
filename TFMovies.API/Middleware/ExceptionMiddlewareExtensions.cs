@@ -19,6 +19,12 @@ public static class ExceptionMiddlewareExtensions
 
                 if (exceptionFeature != null)
                 {
+                    context.Features.Set<IExceptionHandlerFeature>(new ExceptionHandlerFeature
+                    {
+                        Error = exceptionFeature.Error,
+                        Path = exceptionFeature.Path
+                    });
+
                     HttpStatusCode statusCode;
                     string logMessage = GetLogMessage(context, exceptionFeature);
                     var errorMessage = exceptionFeature.Error.Message;
@@ -40,8 +46,8 @@ public static class ExceptionMiddlewareExtensions
                             break;
                     }
 
-                    logger.LogError(exceptionFeature.Error, logMessage);
-                    await WriteExceptionResponseAsync(context, errorMessage, statusCode);
+                    logger.LogError(logMessage);
+                    await WriteExceptionResponseAsync(context, errorMessage, statusCode);                   
                 }
             });
         });
@@ -57,7 +63,8 @@ public static class ExceptionMiddlewareExtensions
     private static async Task WriteExceptionResponseAsync(HttpContext context, string errorMessage, HttpStatusCode statusCode)
     {
         var response = context.Response;
-        var result = JsonSerializer.Serialize(new ErrorResponse { ErrorMessage = errorMessage });
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var result = JsonSerializer.Serialize(new ErrorResponse { ErrorMessage = errorMessage }, options);
 
         response.ContentType = "application/json";
         response.StatusCode = (int)statusCode;

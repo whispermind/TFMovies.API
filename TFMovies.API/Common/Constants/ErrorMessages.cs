@@ -11,8 +11,9 @@ public static class ErrorMessages
     //User 
     //Model State -registration
     public const string UserAlreadyExists = "A user with the provided email already exists.";
+    public const string EmailInvalidFormat = "The email address is not in a valid format. Please enter a valid email address.";
     public const string InvalidToken = "Invalid token.";
-    public const string IncorrectNickName = "{0} must start with an uppercase letter and contain only letters, minimum 2 symbols.";
+    public const string IncorrectNickName = "{0} must start with an uppercase letter and contain only Latin letters, minimum 2 symbols.";
     public const string IncorrectPasswordComplexity = "The Password must be at least 8 characters long and contain only Latin letters, at least one uppercase letter, one lowercase letter, one number, and one special character like -, _, +, =.";
     //other
     public const string IncorrectPassword = "Password is incorrect.";

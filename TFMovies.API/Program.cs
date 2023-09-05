@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using SendGrid.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using TFMovies.API.Data;
 using TFMovies.API.Data.Entities;
 using TFMovies.API.Data.Repository.Implementations;
@@ -37,6 +38,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 
 builder.Services.AddControllers();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

@@ -12,6 +12,7 @@ public class RegisterRequest
 
     [Required]
     [EmailAddress]
+    [RegularExpression(UserRegulars.EmailPattern, ErrorMessage = ErrorMessages.EmailInvalidFormat)]
     public string Email { get; set; }
 
     /// <example>34Jvqt+K</example>
