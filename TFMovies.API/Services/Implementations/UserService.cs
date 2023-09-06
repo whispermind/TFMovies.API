@@ -77,11 +77,14 @@ public class UserService : IUserService
 
         return new LoginResponse
         {
-            Nickname = userDb.Nickname,
-            Role = userRole,
+            CurrentUser = new CurrentUser
+            {
+                Nickname = userDb.Nickname,
+                Role = userRole
+            },
             AccessToken = accessToken,
             RefreshToken = refreshToken.Token
-        };        
+        };
     }
 
     public async Task LogoutAsync(LogoutRequest model)
