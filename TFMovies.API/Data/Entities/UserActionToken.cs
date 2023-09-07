@@ -2,9 +2,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using TFMovies.API.Common.Enum;
+using Microsoft.EntityFrameworkCore;
 
 namespace TFMovies.API.Data.Entities;
 
+[Index(nameof(UserId), nameof(TokenType), IsUnique = true)]
 public class UserActionToken
 {
     [Key]

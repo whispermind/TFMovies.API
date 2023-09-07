@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using System.Net;
+using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Common.Enum;
 using TFMovies.API.Data.Entities;
@@ -39,7 +40,7 @@ public class UserService : IUserService
         _actionTokenSettings = actionTokenSettings.Value;
         _emailService = emailService;
     }
-    public async ValueTask<LoginResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAddress)
+    public async Task<LoginResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAddress)
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
@@ -98,7 +99,7 @@ public class UserService : IUserService
         }
     }
 
-    public async ValueTask<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model, string ipAddress)
+    public async Task<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model, string ipAddress)
     {
         var tokenDb = await ValidateRefreshToken(model.RefreshToken, ipAddress);
 
@@ -123,7 +124,7 @@ public class UserService : IUserService
     {       
         await GetUserOrThrowAsync(email: model.Email, throwIfUserExists: true);
 
-        var email = model.Email.Trim().ToLower();
+        var email = model.Email.ToLower();
 
         var newUser = new User
         {
@@ -136,7 +137,7 @@ public class UserService : IUserService
         
         EnsureSuccess(result);
 
-        result = await _userRepository.AddToRoleAsync(newUser, UserRoleEnum.User.ToString());
+        result = await _userRepository.AddToRoleAsync(newUser, RoleNames.User);
 
         if (!result.Succeeded)
         {
@@ -189,7 +190,7 @@ public class UserService : IUserService
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordResetSubject, callBackUrl);       
     }
     
-    public async ValueTask<UserActionToken> ValidateResetTokenAsync(string token, bool setUsed)
+    public async Task<UserActionToken> ValidateResetTokenAsync(string token, bool setUsed)
     {
         var actionTokenDb = await _actionTokenRepository.FindByTokenValueAndTypeAsync(token, ActionTokenTypeEnum.PasswordReset);
 
@@ -223,6 +224,33 @@ public class UserService : IUserService
         EnsureSuccess(result);
 
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject);
+    }
+
+    public async Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal)
+    {
+        var currentUser = await _userRepository.GetCurrentAuthenticatedUser(currentUserPrincipal);
+
+        if (currentUser == null)
+        {
+            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
+        }
+
+        if (!IsValidRole(newRole))
+        {
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.InvalidRole);
+        }
+
+        var currentRoles = await _userRepository.GetRolesAsync(currentUser);
+
+        await _userRepository.RemoveFromRolesAsync(currentUser, currentRoles);
+
+        var result = await _userRepository.AddToRoleAsync(currentUser, newRole);
+        
+        if (!result.Succeeded)
+        {
+            throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.UpdateRoleFailed);
+        }
+
     }
 
     //helpers
@@ -350,7 +378,7 @@ public class UserService : IUserService
         }
         else if (email != null)
         {
-            email = email.Trim().ToLower();
+            email = email.ToLower();
 
             userDb = await _userRepository.FindByEmailAsync(email);
         }
@@ -410,4 +438,9 @@ public class UserService : IUserService
         await _refreshTokenRepository.UpdateAsync(tokenDb);
     }
 
+    private bool IsValidRole(string role)
+    {        
+        var validRoles = new List<string> { RoleNames.SuperAdmin, RoleNames.User, RoleNames.Author };
+        return validRoles.Contains(role);
+    }
 }
