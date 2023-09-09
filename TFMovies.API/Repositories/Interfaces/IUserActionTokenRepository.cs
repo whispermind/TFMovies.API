@@ -1,7 +1,7 @@
 ﻿using TFMovies.API.Common.Enum;
 using TFMovies.API.Data.Entities;
 
-namespace TFMovies.API.Data.Repository.Interfaces;
+namespace TFMovies.API.Repositories.Interfaces;
 
 public interface IUserActionTokenRepository : IBaseRepository<UserActionToken>
 {

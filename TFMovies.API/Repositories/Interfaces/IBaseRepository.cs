@@ -1,4 +1,4 @@
-﻿namespace TFMovies.API.Data.Repository.Interfaces;
+﻿namespace TFMovies.API.Repositories.Interfaces;
 
 public interface IBaseRepository<T>
     where T : class

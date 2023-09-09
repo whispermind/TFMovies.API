@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Repository.Interfaces;
 using TFMovies.API.Models.Responses;
+using TFMovies.API.Repositories.Interfaces;
 
-namespace TFMovies.API.Data.Repository.Implementations;
+namespace TFMovies.API.Repositories.Implementations;
 
 public class UserRepository : IUserRepository
 {
@@ -40,18 +40,6 @@ public class UserRepository : IUserRepository
         return await _userManager.DeleteAsync(user);
     }
 
-    public async Task<User?> GetCurrentAuthenticatedUser(ClaimsPrincipal currentUserPrincipal)
-    {
-        var userId = currentUserPrincipal.FindFirstValue("sub");
-
-        if (userId != null)
-        {
-            return await _userManager.FindByIdAsync(userId);
-        }
-
-        return null;
-    }
-
     //Manage Password
     public async Task<bool> CheckPasswordAsync(User user, string password)
     {
@@ -79,5 +67,5 @@ public class UserRepository : IUserRepository
     public async Task<IdentityResult> RemoveFromRolesAsync(User user, IEnumerable<string> roles)
     {
         return await _userManager.RemoveFromRolesAsync(user, roles);
-    }    
+    }
 }

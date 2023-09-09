@@ -2,7 +2,7 @@
 
 namespace TFMovies.API.Models.Requests;
 
-public class UpdateThemeRequest
+public class ThemeUpdateRequest
 {
     [Required]
     public string OldName { get; set; }

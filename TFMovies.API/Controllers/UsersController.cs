@@ -160,7 +160,7 @@ public class UsersController : ControllerBase
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> VerifyEmailAsync([FromBody] VerifyEmailRequest model)
+    public async Task<IActionResult> VerifyEmailAsync([FromBody] EmailVerifyRequest model)
     {
         await _userService.VerifyEmailAsync(model);
 
@@ -187,7 +187,7 @@ public class UsersController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(404, "NOT_FOUND", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> SendActivationEmailAsync([FromBody] ActivateEmailRequest model)
+    public async Task<IActionResult> SendActivationEmailAsync([FromBody] EmailActivateRequest model)
     {
         var callBackUrl = GenerateVerifyEmailUrl();
 
@@ -214,7 +214,7 @@ public class UsersController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPasswordAsync([FromBody] ForgotPasswordRequest model)
+    public async Task<IActionResult> ForgotPasswordAsync([FromBody] PasswordForgotRequest model)
     {
         var callBackUrl = GenerateValidateResetTokenUrl();
 
@@ -241,7 +241,7 @@ public class UsersController : ControllerBase
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> ValidateResetTokenAsync([FromBody] ValidateResetTokenRequest model)
+    public async Task<IActionResult> ValidateResetTokenAsync([FromBody] ResetTokenValidateRequest model)
     {
         await _userService.ValidateResetTokenAsync(model.Token, false);
 
@@ -269,7 +269,7 @@ public class UsersController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(404, "NOT_FOUND", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> ResetPasswordAsync([FromBody] ResetPasswordRequest model)
+    public async Task<IActionResult> ResetPasswordAsync([FromBody] PasswordResetRequest model)
     {
         await _userService.ResetPasswordAsync(model);
 

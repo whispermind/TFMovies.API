@@ -2,7 +2,7 @@
 
 namespace TFMovies.API.Models.Requests;
 
-public class UploadFileRequest
+public class FileUploadRequest
 {
     [Required]
     public IFormFile File { get; init; }

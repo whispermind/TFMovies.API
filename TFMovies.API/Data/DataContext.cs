@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 using TFMovies.API.Data.Entities;
 
 namespace TFMovies.API.Data;
@@ -27,7 +28,7 @@ public class DataContext : IdentityDbContext<User>
         builder.Entity<IdentityUserClaim<string>>().ToTable("UserClaims");
         builder.Entity<IdentityUserLogin<string>>().ToTable("UserLogins");
         builder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
-        builder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");        
+        builder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
 
         builder.Entity<PostTag>()
         .HasKey(pt => new { pt.PostId, pt.TagId });

@@ -1,13 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace TFMovies.API.Data.Entities;
 
-public class Tag
+[Index(nameof(Name), IsUnique = true)]
+public class Tag : BaseModel
 {
-    [Key]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
-    [Required]
     public string Name { get; set; }
 
     public ICollection<PostTag>? PostTags { get; set; }

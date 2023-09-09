@@ -7,9 +7,8 @@ using TFMovies.API.Common.Constants;
 using TFMovies.API.Exceptions;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Responses;
-using TFMovies.API.Services.Interfaces;
 
-namespace TFMovies.API.Services.Implementations;
+namespace TFMovies.API.Integrations;
 
 public class BlobStorageService : IFileStorageService
 {
@@ -23,7 +22,7 @@ public class BlobStorageService : IFileStorageService
         _blobSettings = options.Value;
     }
 
-    public async Task<UploadFileResponse> UploadImageAsync(IFormFile file)
+    public async Task<FileUploadResponse> UploadImageAsync(IFormFile file)
     {
         var containerName = _blobSettings.Container;
 
@@ -41,7 +40,7 @@ public class BlobStorageService : IFileStorageService
 
         var response = await UploadFileAsync(file.OpenReadStream(), containerName, fileName);
 
-        return new UploadFileResponse
+        return new FileUploadResponse
         {
             FileUrl = response
         };

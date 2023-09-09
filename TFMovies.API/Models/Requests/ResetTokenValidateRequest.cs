@@ -2,8 +2,8 @@
 
 namespace TFMovies.API.Models.Requests;
 
-public class CreateThemeRequest
+public class ResetTokenValidateRequest
 {
     [Required]
-    public string Name { get; set; }
+    public string Token { get; set; }
 }

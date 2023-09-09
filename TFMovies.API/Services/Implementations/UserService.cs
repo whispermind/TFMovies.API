@@ -5,12 +5,12 @@ using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Common.Enum;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Repository.Interfaces;
 using TFMovies.API.Exceptions;
 using TFMovies.API.Integrations;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
+using TFMovies.API.Repositories.Interfaces;
 using TFMovies.API.Services.Interfaces;
 using TFMovies.API.Utils;
 
@@ -149,7 +149,7 @@ public class UserService : IUserService
         await SendEmailByEmailSubjectAsync(newUser, EmailTemplates.EmailVerifySubject, callBackUrl);
     }
 
-    public async Task VerifyEmailAsync(VerifyEmailRequest model)
+    public async Task VerifyEmailAsync(EmailVerifyRequest model)
     {
         var actionTokenDb = await _actionTokenRepository.FindByTokenValueAndTypeAsync(model.Token, ActionTokenTypeEnum.EmailVerify);        
 
@@ -176,14 +176,14 @@ public class UserService : IUserService
         EnsureSuccess(result);
     }
 
-    public async Task SendActivationEmailAsync(ActivateEmailRequest model, string callBackUrl)
+    public async Task SendActivationEmailAsync(EmailActivateRequest model, string callBackUrl)
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl);
     }
 
-    public async Task ForgotPasswordAsync(ForgotPasswordRequest model, string callBackUrl)
+    public async Task ForgotPasswordAsync(PasswordForgotRequest model, string callBackUrl)
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
@@ -209,7 +209,7 @@ public class UserService : IUserService
         return actionTokenDb;
     }
 
-    public async Task ResetPasswordAsync(ResetPasswordRequest model)
+    public async Task ResetPasswordAsync(PasswordResetRequest model)
     {
         var actionTokenDb = await ValidateResetTokenAsync(model.Token, true);        
 
@@ -228,7 +228,9 @@ public class UserService : IUserService
 
     public async Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await _userRepository.GetCurrentAuthenticatedUser(currentUserPrincipal);
+        var userId = currentUserPrincipal.FindFirstValue("sub");
+
+        var currentUser = await _userRepository.FindByIdAsync(userId);
 
         if (currentUser == null)
         {

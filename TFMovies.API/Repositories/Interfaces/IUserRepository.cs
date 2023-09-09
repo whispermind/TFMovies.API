@@ -2,7 +2,7 @@
 using System.Security.Claims;
 using TFMovies.API.Data.Entities;
 
-namespace TFMovies.API.Data.Repository.Interfaces;
+namespace TFMovies.API.Repositories.Interfaces;
 
 public interface IUserRepository
 {
@@ -12,7 +12,6 @@ public interface IUserRepository
     public Task<User> FindByEmailAsync(string email);
     public Task<IdentityResult> UpdateAsync(User user);
     public Task<IdentityResult> DeleteAsync(User user);
-    public Task<User?> GetCurrentAuthenticatedUser(ClaimsPrincipal currentUserPrincipal);
 
     //Manage Password
     public Task<bool> CheckPasswordAsync(User user, string password);

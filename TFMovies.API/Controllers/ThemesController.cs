@@ -41,7 +41,7 @@ public class ThemesController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> ResetPasswordAsync([FromBody] CreateThemeRequest model)
+    public async Task<IActionResult> ResetPasswordAsync([FromBody] ThemeCreateRequest model)
     {
         await _themeService.CreateAsync(model.Name);
 
@@ -94,7 +94,7 @@ public class ThemesController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> UpdateAsync(UpdateThemeRequest model)
+    public async Task<IActionResult> UpdateAsync(ThemeUpdateRequest model)
     {
         await _themeService.UpdateAsync(model);
 
@@ -113,15 +113,15 @@ public class ThemesController : ControllerBase
     /// 
     /// Note: Accessible only to users who are authenticated and hold the 'SuperAdmin' role.
     /// </remarks>
-    [HttpDelete("{name}")]
+    [HttpDelete("{id}")]
     [SwaggerOperation(Tags = new[] { "Helpers" })]
     [SwaggerResponse(204, "NO_CONTENT")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> DeleteAsync(string name)
+    public async Task<IActionResult> DeleteAsync(string id)
     {
-        await _themeService.DeleteAsync(name);
+        await _themeService.DeleteAsync(id);
 
         return NoContent();
     }

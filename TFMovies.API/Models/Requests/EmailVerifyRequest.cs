@@ -2,7 +2,7 @@
 
 namespace TFMovies.API.Models.Requests;
 
-public class ValidateResetTokenRequest
+public class EmailVerifyRequest
 {
     [Required]
     public string Token { get; set; }

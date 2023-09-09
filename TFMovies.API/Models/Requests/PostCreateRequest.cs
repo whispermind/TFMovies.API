@@ -4,7 +4,7 @@ using TFMovies.API.Extensions.Attributes;
 
 namespace TFMovies.API.Models.Requests;
 
-public class CreatePostRequest
+public class PostCreateRequest
 {
     [Required]
     public string CoverImageUrl { get; set; }

@@ -2,10 +2,10 @@
 using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Repository.Interfaces;
 using TFMovies.API.Exceptions;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
+using TFMovies.API.Repositories.Interfaces;
 using TFMovies.API.Services.Interfaces;
 
 namespace TFMovies.API.Services.Implementations;
@@ -32,9 +32,10 @@ public class PostService : IPostService
         _postTagRepository = postTagRepository;
     }
 
-    public async Task<PostCreateResponse> CreatePostAsync(CreatePostRequest model, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostCreateResponse> CreateAsync(PostCreateRequest model, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await _userRepository.GetCurrentAuthenticatedUser(currentUserPrincipal);
+        var userId = currentUserPrincipal.FindFirstValue("sub");
+        var currentUser = await _userRepository.FindByIdAsync(userId);
 
         if (currentUser == null)
         {

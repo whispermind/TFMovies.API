@@ -3,7 +3,7 @@ using TFMovies.API.Common.Constants;
 
 namespace TFMovies.API.Models.Requests;
 
-public class ForgotPasswordRequest
+public class EmailActivateRequest
 {
     [Required]
     [EmailAddress]

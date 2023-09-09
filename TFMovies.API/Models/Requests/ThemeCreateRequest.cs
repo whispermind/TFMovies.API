@@ -2,8 +2,8 @@
 
 namespace TFMovies.API.Models.Requests;
 
-public class VerifyEmailRequest
+public class ThemeCreateRequest
 {
     [Required]
-    public string Token { get; set; }
+    public string Name { get; set; }
 }

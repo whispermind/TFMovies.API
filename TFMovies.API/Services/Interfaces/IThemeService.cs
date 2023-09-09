@@ -8,7 +8,7 @@ public interface IThemeService
 {
     public Task CreateAsync(string name);
     public Task<IEnumerable<ThemeResponse>> GetAllAsync();
-    public Task<Theme> GetByNameAsync(string name);
-    public Task UpdateAsync(UpdateThemeRequest model);
-    public Task DeleteAsync(string name);
+    public Task<ThemeResponse> GetByNameAsync(string name);
+    public Task UpdateAsync(ThemeUpdateRequest model);
+    public Task DeleteAsync(string id);
 }

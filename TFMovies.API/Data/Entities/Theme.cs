@@ -2,12 +2,8 @@
 
 namespace TFMovies.API.Data.Entities;
 
-public class Theme
-{
-    [Key]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
-    [Required]
+public class Theme : BaseModel
+{    
     [MaxLength(255)]
     public string Name { get; set; }
 

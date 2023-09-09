@@ -1,8 +1,10 @@
 ﻿using Azure;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TFMovies.API.Data.Entities;
 
+//[PrimaryKey(nameof(Post), nameof(Tag))]
 public class PostTag
 {
     [ForeignKey("Post")]

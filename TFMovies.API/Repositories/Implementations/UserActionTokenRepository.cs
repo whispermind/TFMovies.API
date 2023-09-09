@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TFMovies.API.Common.Enum;
+using TFMovies.API.Data;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Repository.Interfaces;
+using TFMovies.API.Repositories.Interfaces;
 
-namespace TFMovies.API.Data.Repository.Implementations;
+namespace TFMovies.API.Repositories.Implementations;
 
 public class UserActionTokenRepository : BaseRepository<UserActionToken>, IUserActionTokenRepository
 {

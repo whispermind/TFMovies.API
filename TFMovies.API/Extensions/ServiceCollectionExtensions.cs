@@ -1,6 +1,5 @@
-﻿using TFMovies.API.Models.Dto;
-using TFMovies.API.Services.Implementations;
-using TFMovies.API.Services.Interfaces;
+﻿using TFMovies.API.Integrations;
+using TFMovies.API.Models.Dto;
 
 namespace TFMovies.API.Extensions;
 

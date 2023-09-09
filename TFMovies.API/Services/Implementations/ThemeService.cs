@@ -1,10 +1,10 @@
 ﻿using System.Net;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Repository.Interfaces;
 using TFMovies.API.Exceptions;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
+using TFMovies.API.Repositories.Interfaces;
 using TFMovies.API.Services.Interfaces;
 
 namespace TFMovies.API.Services.Implementations;
@@ -25,11 +25,9 @@ public class ThemeService : IThemeService
         await _themeRepository.CreateAsync(theme);
     }
 
-    public async Task DeleteAsync(string name)
+    public async Task DeleteAsync(string id)
     {
-        var themeDb = await _themeRepository.FindByNameAsync(name);
-
-        await _themeRepository.DeleteAsync(themeDb);
+        await _themeRepository.DeleteByIdAsync(id);
     }
 
     public async Task<IEnumerable<ThemeResponse>> GetAllAsync()
@@ -39,28 +37,27 @@ public class ThemeService : IThemeService
         var themesResponse = themesDb.Select(theme =>
             new ThemeResponse
             {
+                Id = theme.Id,
                 Name = theme.Name
             });
 
         return themesResponse;
-    }
+    }  
 
-    public async Task<Theme> GetByNameAsync(string name)
+    public async Task UpdateAsync(ThemeUpdateRequest model)
     {
-        var themeDb = await _themeRepository.FindByNameAsync(name);
+        var theme = await GetByNameAsync(model.OldName);
 
-        return themeDb;
+        var updatedThemeDb = new Theme
+        {
+            Id = theme.Id,
+            Name = model.NewName
+        };    
+
+        await _themeRepository.UpdateAsync(updatedThemeDb);
     }
 
-    public async Task UpdateAsync(UpdateThemeRequest model)
-    {
-        var themeDb = await FindByNameAsync(model.OldName);
-
-        themeDb.Name = model.NewName;
-        await _themeRepository.UpdateAsync(themeDb);
-    }
-
-    private async Task<Theme> FindByNameAsync(string name)
+    public async Task<ThemeResponse> GetByNameAsync(string name)
     {
         var themeDb = await _themeRepository.FindByNameAsync(name);
 
@@ -69,6 +66,10 @@ public class ThemeService : IThemeService
             throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.ThemeNotFound, name));
         }
 
-        return themeDb;
+        return new ThemeResponse
+        {
+            Id = themeDb.Id,
+            Name = themeDb.Name
+        };
     }
 }

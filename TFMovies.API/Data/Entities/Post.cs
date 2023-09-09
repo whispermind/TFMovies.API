@@ -3,27 +3,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TFMovies.API.Data.Entities;
 
-public class Post
+public class Post : BaseModel
 {
-    [Key]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
-    [Required]
     [ForeignKey("User")]
     public string UserId { get; set; }
 
-    [Required]
     [ForeignKey("Theme")]
     public string ThemeId { get; set; }
 
-    [Required]
     [MaxLength(100)]
     public string Title { get; set; }
-
-    [Required]
     public string HtmlContent { get; set; }
-
-    [Required]
+        
     [Url]
     public string CoverImageUrl { get; set; }
     public DateTime CreatedAt { get; set; }

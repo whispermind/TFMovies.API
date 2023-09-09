@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TFMovies.API.Data.Repository.Interfaces;
+using TFMovies.API.Data;
+using TFMovies.API.Repositories.Interfaces;
 
-namespace TFMovies.API.Data.Repository.Implementations;
+namespace TFMovies.API.Repositories.Implementations;
 
 public abstract class BaseRepository<T> : IBaseRepository<T>
     where T : class
