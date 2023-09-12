@@ -5,8 +5,6 @@ public static class ErrorMessages
     //Common
     public const string UnexpectedError = "An unexpected error has occurred. Please try again later.";
     public const string OperationFailed = "Something went wrong. Please try again later.";
-    public const string InvalidRequestParams = "Invalid request parameters.";
-
 
     //User 
     //Model State -registration
@@ -19,11 +17,17 @@ public static class ErrorMessages
     public const string IncorrectPassword = "Password is incorrect.";
     public const string UserNotFound = "User with the provided email not found.";
     public const string UnconfirmedEmail = "Email address has not been confirmed yet. Please check your inbox for the confirmation link.";
+    public const string InvalidRole = "Invalid Role specified.";
+    public const string UpdateRoleFailed = "Error updating user role";
 
+    // Files exception
+    public const string UploadedFileInvalid = "No file uploaded or the file name is invalid.";
+    public const string FileUploadFailed = "File upload failed";
 
-    ////For Inner exception
-    //public const string UserWithoutRoles = "User has no roles.";
-    //public const string OperationFailedDetails = "An error occurred during {0}. "; //0 - some operation/process
-    //public const string RefreshTokenUserNotFound = "No user associated with the provided refresh token.";
-    //public const string SendgridProblem = "Sendgrid problem: {0} - {1}."; //0-StatusCode, 1 - SendgridException
+    //Posts
+    public const string MaxTagsItemError = "A maximum of {0} tags are allowed.";
+
+    //Theme
+    public const string ThemeNotFound = "The theme \"{0}\" not found";
+    public const string ThemeNameConflict = "The theme \"{0}\" already exists";
 }

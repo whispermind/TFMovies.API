@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TFMovies.API.Data;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Repository.Interfaces;
+using TFMovies.API.Repositories.Interfaces;
 
-namespace TFMovies.API.Data.Repository.Implementations;
+namespace TFMovies.API.Repositories.Implementations;
 
 public class RefreshTokenRepository : BaseRepository<RefreshToken>, IRefreshTokenRepository
 {
@@ -14,7 +15,7 @@ public class RefreshTokenRepository : BaseRepository<RefreshToken>, IRefreshToke
         var result = await _entities
                .FirstOrDefaultAsync(item =>
                  item.Token == token
-                 && item.CreatedByIp == ipAddress);                 
+                 && item.CreatedByIp == ipAddress);
 
         return result;
     }

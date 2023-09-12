@@ -2,19 +2,20 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Azure;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SendGrid.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Text;
-using System.Text.Json;
 using TFMovies.API.Data;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Repository.Implementations;
-using TFMovies.API.Data.Repository.Interfaces;
+using TFMovies.API.Extensions;
 using TFMovies.API.Integrations;
 using TFMovies.API.Middleware;
 using TFMovies.API.Models.Dto;
+using TFMovies.API.Repositories.Implementations;
+using TFMovies.API.Repositories.Interfaces;
 using TFMovies.API.Services.Implementations;
 using TFMovies.API.Services.Interfaces;
 using TFMovies.API.Utils;
@@ -28,13 +29,20 @@ builder.Services.Configure<SendGridSettings>(builder.Configuration.GetSection("S
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<UserActionTokenSettings>(builder.Configuration.GetSection("UserActionTokenSettings"));
 builder.Services.Configure<WebConfig>(builder.Configuration.GetSection("WebConfig"));
+builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("BlobSettings"));
 
 builder.Services.AddScoped<IUserActionTokenRepository, UserActionTokenRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IPostRepository, PostRepository>();
+builder.Services.AddScoped<IThemeRepository, ThemeRepository>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
+builder.Services.AddScoped<IPostTagRepository, PostTagRepository>();
 builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<IThemeService, ThemeService>();
 
 
 builder.Services.AddControllers();
@@ -116,11 +124,20 @@ builder.Services.AddAuthentication(options =>
             ),
             ValidateLifetime = true
         };
+        options.MapInboundClaims = false;
     });
 
 //add SendGrid
 builder.Services.AddSendGrid(client => { client.ApiKey = builder.Configuration["SendGridSettings:ApiKey"]; });
 
+//add BLOB Storage
+builder.Services.AddAzureClients(clientBuilder =>
+{
+    clientBuilder.AddBlobServiceClient(builder.Configuration["BlobSettings:ConnectionString"]);
+});
+builder.Services.AddFileStorageService(builder.Configuration["BlobSettings:ConnectionString"]);
+
+//add CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
