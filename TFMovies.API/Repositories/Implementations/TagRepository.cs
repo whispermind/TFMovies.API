@@ -21,8 +21,10 @@ public class TagRepository : BaseRepository<Tag>, ITagRepository
 
     public async Task<IEnumerable<Tag>> FindByNamesAsync(IEnumerable<string> tagNames)
     {
-        return await _entities
+        var result = await _entities
                     .Where(t => tagNames.Contains(t.Name))
                     .ToListAsync();
+        
+        return result;
     }
 }

@@ -71,6 +71,7 @@ public class UsersController : ControllerBase
     ///     
     /// </remarks>
     [HttpPost("logout")]
+    [Authorize]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]   
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]

@@ -26,6 +26,7 @@ public static class ErrorMessages
 
     //Posts
     public const string MaxTagsItemError = "A maximum of {0} tags are allowed.";
+    public const string PostNotFound = "The post not found";
 
     //Theme
     public const string ThemeNotFound = "The theme \"{0}\" not found";

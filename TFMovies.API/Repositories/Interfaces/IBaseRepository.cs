@@ -11,5 +11,6 @@ public interface IBaseRepository<T>
     public Task<T> UpdateAsync(T entity);
     public Task DeleteAsync(T entity);
     public Task DeleteByIdAsync(string id);
+    public Task DeleteRangeAsync(IEnumerable<T> entities);
     public Task SaveChangesAsync();
 }

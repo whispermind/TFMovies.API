@@ -52,4 +52,36 @@ public class PostsController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Updates an existing post.
+    /// </summary>
+    /// <param name="model">The post update details.</param>
+    /// <returns>Status 200 and updated Post details if successful.</returns>
+    /// <remarks>
+    /// Example:
+    /// 
+    ///     PUT /posts/update
+    ///     {
+    ///        "id": "_current_post_id",
+    ///        "coverImageUrl": "http://example.com/image.jpg",
+    ///        "theme": "Theme2",
+    ///        "title": "Updated Post Title",
+    ///        "htmlContent": "<p>Updated post content here</p>",
+    ///        "tags": ["tag4", "tag5"]
+    ///     }
+    /// 
+    /// </remarks>
+    [HttpPut]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.Author)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostUpdateResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> UpdateAsync([FromBody] PostUpdateRequest model)
+    {
+        var result = await _postService.UpdateAsync(model);
+
+        return Ok(result);
+    }
 }
