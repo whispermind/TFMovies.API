@@ -7,8 +7,8 @@ public class PostCreateResponse
     public string Title { get; set; }
     public string HtmlContent { get; set; }    
     public DateTime CreatedAt { get; set; }    
-    public string AuthorNickname { get; set; }
-    public string ThemeName { get; set; }
+    public string Author { get; set; }
+    public string Theme { get; set; }
     
-    public ICollection<string> TagNames { get; set; }   
+    public ICollection<string> Tags { get; set; }   
 }

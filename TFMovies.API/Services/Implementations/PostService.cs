@@ -69,9 +69,9 @@ public class PostService : IPostService
             Title = post.Title,
             HtmlContent = post.HtmlContent,
             CreatedAt = post.CreatedAt,
-            AuthorNickname = currentUser.Nickname,
-            ThemeName = theme.Name,
-            TagNames = existingTags.Select(t => t.Name).ToList()
+            Author = currentUser.Nickname,
+            Theme = theme.Name,
+            Tags = existingTags.Select(t => t.Name).ToList()
         };
 
         return response;
