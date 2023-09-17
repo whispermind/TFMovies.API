@@ -104,7 +104,7 @@ public class ThemesController : ControllerBase
     /// <summary>
     /// Delete a theme by name.
     /// </summary>
-    /// <param name="name">The name of the theme to delete.</param>
+    /// <param name="id">Id of the theme to delete.</param>
     /// <returns>Status 204 if successful.</returns>
     /// <remarks>
     /// Example:

@@ -68,6 +68,16 @@ public abstract class BaseRepository<T> : IBaseRepository<T>
             await SaveChangesAsync();
         }
     }
+
+    public async Task DeleteRangeAsync(IEnumerable<T> entities)
+    {
+       if (entities.Any())
+       {
+            _entities.RemoveRange(entities);
+            await SaveChangesAsync();
+       }
+        
+    }
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
