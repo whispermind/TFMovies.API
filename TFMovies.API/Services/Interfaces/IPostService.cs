@@ -8,5 +8,5 @@ public interface IPostService
 {
     public Task<PostCreateResponse> CreateAsync(PostCreateRequest model, ClaimsPrincipal currentUserPrincipal);
 
-    public Task<PostUpdateResponse> UpdateAsync(PostUpdateRequest model);
+    public Task<PostUpdateResponse> UpdateAsync(string id, PostUpdateRequest model);
 }

@@ -54,33 +54,33 @@ public class PostsController : ControllerBase
     }
 
     /// <summary>
-    /// Updates an existing post.
+    /// Updates the specified post.
     /// </summary>
-    /// <param name="model">The post update details.</param>
-    /// <returns>Status 200 and updated Post details if successful.</returns>
+    /// <param name="id">The identifier of the post to be updated.</param>
+    /// <param name="model">An object containing the updated post details.</param>
+    /// <returns>Returns status 200 along with the details of the updated post if the operation is successful.</returns>
     /// <remarks>
-    /// Example:
-    /// 
-    ///     PUT /posts/update
+    /// Example of a PUT request to update a post:
+    ///
+    ///     PUT /posts/{id}
     ///     {
-    ///        "id": "_current_post_id",
     ///        "coverImageUrl": "http://example.com/image.jpg",
     ///        "theme": "Theme2",
     ///        "title": "Updated Post Title",
     ///        "htmlContent": "<p>Updated post content here</p>",
     ///        "tags": ["tag4", "tag5"]
     ///     }
-    /// 
+    ///
     /// </remarks>
-    [HttpPut]
+    [HttpPut("{id}")]
     [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.Author)]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostUpdateResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> UpdateAsync([FromBody] PostUpdateRequest model)
+    public async Task<IActionResult> UpdateAsync(string id, [FromBody] PostUpdateRequest model)
     {
-        var result = await _postService.UpdateAsync(model);
+        var result = await _postService.UpdateAsync(id, model);
 
         return Ok(result);
     }

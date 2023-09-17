@@ -7,9 +7,6 @@ namespace TFMovies.API.Models.Requests;
 public class PostUpdateRequest
 {
     [Required]
-    public string Id { get; set; }
-
-    [Required]
     public string CoverImageUrl { get; set; }
 
     [Required]

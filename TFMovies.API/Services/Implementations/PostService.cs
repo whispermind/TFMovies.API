@@ -77,9 +77,9 @@ public class PostService : IPostService
         return response;
     }
     
-    public async Task<PostUpdateResponse> UpdateAsync(PostUpdateRequest model)
+    public async Task<PostUpdateResponse> UpdateAsync(string id, PostUpdateRequest model)
     {
-        var postDb = await GetPostByIdAsync(model.Id);
+        var postDb = await GetPostByIdAsync(id);
 
         var user = await _userRepository.FindByIdAsync(postDb.UserId);
 
@@ -104,9 +104,9 @@ public class PostService : IPostService
             Title = postDb.Title,
             HtmlContent = postDb.HtmlContent,
             CreatedAt = postDb.CreatedAt,
-            AuthorNickname = user.Nickname,
-            ThemeName = theme.Name,
-            TagNames = existingTags.Select(t => t.Name).ToList()
+            Author = user.Nickname,
+            Theme = theme.Name,
+            Tags = existingTags.Select(t => t.Name).ToList()
         };
 
         return response;
