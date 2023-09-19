@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using TFMovies.API.Models.Dto;
@@ -36,6 +37,7 @@ public class UsersController : ControllerBase
     ///       "email": "john.doe@example.com",
     ///       "password": "34Jvqt+K"
     ///     }
+    ///     
     /// </remarks>
     [HttpPost("login")]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(LoginResponse))]
@@ -66,8 +68,10 @@ public class UsersController : ControllerBase
     ///       "accessToken": "current_access_token",
     ///       "refreshToken": "current_refresh_token"
     ///     }
+    ///     
     /// </remarks>
     [HttpPost("logout")]
+    [Authorize]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]   
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
@@ -122,6 +126,7 @@ public class UsersController : ControllerBase
     ///   "password": "34Jvqt+K",
     ///   "confirmPassword": "34Jvqt+K"
     /// }
+    /// 
     /// </remarks>
     [HttpPost("signup")]
     [SwaggerResponse(201, "CREATED")]
@@ -156,7 +161,7 @@ public class UsersController : ControllerBase
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> VerifyEmailAsync([FromBody] VerifyEmailRequest model)
+    public async Task<IActionResult> VerifyEmailAsync([FromBody] EmailVerifyRequest model)
     {
         await _userService.VerifyEmailAsync(model);
 
@@ -183,7 +188,7 @@ public class UsersController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(404, "NOT_FOUND", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> SendActivationEmailAsync([FromBody] ActivateEmailRequest model)
+    public async Task<IActionResult> SendActivationEmailAsync([FromBody] EmailActivateRequest model)
     {
         var callBackUrl = GenerateVerifyEmailUrl();
 
@@ -210,7 +215,7 @@ public class UsersController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPasswordAsync([FromBody] ForgotPasswordRequest model)
+    public async Task<IActionResult> ForgotPasswordAsync([FromBody] PasswordForgotRequest model)
     {
         var callBackUrl = GenerateValidateResetTokenUrl();
 
@@ -237,7 +242,7 @@ public class UsersController : ControllerBase
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> ValidateResetTokenAsync([FromBody] ValidateResetTokenRequest model)
+    public async Task<IActionResult> ValidateResetTokenAsync([FromBody] ResetTokenValidateRequest model)
     {
         await _userService.ValidateResetTokenAsync(model.Token, false);
 
@@ -265,11 +270,40 @@ public class UsersController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(404, "NOT_FOUND", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> ResetPasswordAsync([FromBody] ResetPasswordRequest model)
+    public async Task<IActionResult> ResetPasswordAsync([FromBody] PasswordResetRequest model)
     {
         await _userService.ResetPasswordAsync(model);
 
         return Ok();
+    }
+
+    /// <summary>
+    /// Changes the role of the currently authenticated user.
+    /// </summary>
+    /// <param name="newRole">The new role to assign to the user.</param>
+    /// <returns>Status 204 if successful.</returns>
+    /// <remarks>
+    /// Example:
+    /// 
+    ///     PUT /users/change-role
+    ///     {
+    ///        "newRole": "Author"
+    ///     }
+    /// 
+    /// Note: The role change will only be successful if the user is authorized and the specified role exists.
+    /// </remarks>        
+    [HttpPut("change-role")]
+    [Authorize]
+    [SwaggerOperation(Tags = new[] { "Helpers" })]
+    [SwaggerResponse(204, "NO_CONTENT")]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> ChangeRoleAsync(string newRole)
+    {
+        await _userService.ChangeRoleAsync(newRole, User);
+
+        return NoContent();
     }
 
     // helper methods

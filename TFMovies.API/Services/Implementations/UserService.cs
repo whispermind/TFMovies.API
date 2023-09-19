@@ -1,15 +1,16 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using System.Net;
+using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Common.Enum;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Repository.Interfaces;
 using TFMovies.API.Exceptions;
 using TFMovies.API.Integrations;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
+using TFMovies.API.Repositories.Interfaces;
 using TFMovies.API.Services.Interfaces;
 using TFMovies.API.Utils;
 
@@ -39,7 +40,7 @@ public class UserService : IUserService
         _actionTokenSettings = actionTokenSettings.Value;
         _emailService = emailService;
     }
-    public async ValueTask<LoginResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAddress)
+    public async Task<LoginResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAddress)
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
@@ -98,7 +99,7 @@ public class UserService : IUserService
         }
     }
 
-    public async ValueTask<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model, string ipAddress)
+    public async Task<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model, string ipAddress)
     {
         var tokenDb = await ValidateRefreshToken(model.RefreshToken, ipAddress);
 
@@ -123,7 +124,7 @@ public class UserService : IUserService
     {       
         await GetUserOrThrowAsync(email: model.Email, throwIfUserExists: true);
 
-        var email = model.Email.Trim().ToLower();
+        var email = model.Email.ToLower();
 
         var newUser = new User
         {
@@ -136,7 +137,7 @@ public class UserService : IUserService
         
         EnsureSuccess(result);
 
-        result = await _userRepository.AddToRoleAsync(newUser, UserRoleEnum.User.ToString());
+        result = await _userRepository.AddToRoleAsync(newUser, RoleNames.User);
 
         if (!result.Succeeded)
         {
@@ -148,7 +149,7 @@ public class UserService : IUserService
         await SendEmailByEmailSubjectAsync(newUser, EmailTemplates.EmailVerifySubject, callBackUrl);
     }
 
-    public async Task VerifyEmailAsync(VerifyEmailRequest model)
+    public async Task VerifyEmailAsync(EmailVerifyRequest model)
     {
         var actionTokenDb = await _actionTokenRepository.FindByTokenValueAndTypeAsync(model.Token, ActionTokenTypeEnum.EmailVerify);        
 
@@ -175,21 +176,21 @@ public class UserService : IUserService
         EnsureSuccess(result);
     }
 
-    public async Task SendActivationEmailAsync(ActivateEmailRequest model, string callBackUrl)
+    public async Task SendActivationEmailAsync(EmailActivateRequest model, string callBackUrl)
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl);
     }
 
-    public async Task ForgotPasswordAsync(ForgotPasswordRequest model, string callBackUrl)
+    public async Task ForgotPasswordAsync(PasswordForgotRequest model, string callBackUrl)
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordResetSubject, callBackUrl);       
     }
     
-    public async ValueTask<UserActionToken> ValidateResetTokenAsync(string token, bool setUsed)
+    public async Task<UserActionToken> ValidateResetTokenAsync(string token, bool setUsed)
     {
         var actionTokenDb = await _actionTokenRepository.FindByTokenValueAndTypeAsync(token, ActionTokenTypeEnum.PasswordReset);
 
@@ -208,7 +209,7 @@ public class UserService : IUserService
         return actionTokenDb;
     }
 
-    public async Task ResetPasswordAsync(ResetPasswordRequest model)
+    public async Task ResetPasswordAsync(PasswordResetRequest model)
     {
         var actionTokenDb = await ValidateResetTokenAsync(model.Token, true);        
 
@@ -223,6 +224,35 @@ public class UserService : IUserService
         EnsureSuccess(result);
 
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject);
+    }
+
+    public async Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal)
+    {
+        var userId = currentUserPrincipal.FindFirstValue("sub");
+
+        var currentUser = await _userRepository.FindByIdAsync(userId);
+
+        if (currentUser == null)
+        {
+            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
+        }
+
+        if (!IsValidRole(newRole))
+        {
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.InvalidRole);
+        }
+
+        var currentRoles = await _userRepository.GetRolesAsync(currentUser);
+
+        await _userRepository.RemoveFromRolesAsync(currentUser, currentRoles);
+
+        var result = await _userRepository.AddToRoleAsync(currentUser, newRole);
+        
+        if (!result.Succeeded)
+        {
+            throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.UpdateRoleFailed);
+        }
+
     }
 
     //helpers
@@ -350,7 +380,7 @@ public class UserService : IUserService
         }
         else if (email != null)
         {
-            email = email.Trim().ToLower();
+            email = email.ToLower();
 
             userDb = await _userRepository.FindByEmailAsync(email);
         }
@@ -410,4 +440,9 @@ public class UserService : IUserService
         await _refreshTokenRepository.UpdateAsync(tokenDb);
     }
 
+    private bool IsValidRole(string role)
+    {        
+        var validRoles = new List<string> { RoleNames.SuperAdmin, RoleNames.User, RoleNames.Author };
+        return validRoles.Contains(role);
+    }
 }
