@@ -38,7 +38,6 @@ public class PostsController : ControllerBase
     ///     }
     /// 
     /// </remarks>
-
     [HttpPost]
     [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.Author)]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostCreateResponse))]
@@ -83,5 +82,128 @@ public class PostsController : ControllerBase
         var result = await _postService.UpdateAsync(id, model);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Retrieves a list of posts based on the specified filters.
+    /// </summary> 
+    /// <param name="page">The page number to retrieve.</param>
+    /// <param name="limit">The number of posts per page.</param>
+    /// <param name="sort">The sorting criteria (by default - Last created).</param>
+    /// <param name="theme">The theme filter.</param>     
+    [HttpGet]
+    [AllowAnonymous]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostGetAllResponse))]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> GetAllAsync([FromQuery] int page, [FromQuery] int limit, [FromQuery] string? sort = null, [FromQuery] string? theme = null)
+    {
+        var result = await _postService.GetAllAsync(page, limit, sort, theme, User);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Retrieves the details of a specific post by its ID.
+    /// </summary>
+    /// <param name="id">The unique identifier of the post.</param>
+    /// <returns>Returns status 200 along with the detailed information of the post if the operation is successful.</returns>
+    /// <remarks>
+    /// Example of a GET request to retrieve a post:
+    ///
+    ///     GET /posts/{id}
+    ///
+    /// **Note**: You must be authenticated as a Super Admin, Author, or User to use this endpoint.
+    /// </remarks>
+    [HttpGet("{id}")]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostGetByIdResponse))]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> GetByIdAsync(string id)
+    {
+        var result = await _postService.GetByIdAsync(id, User);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Adds a comment to a specific post.
+    /// </summary>
+    /// <param name="model">An object containing the details of the comment to be added.</param>
+    /// <returns>Returns status 200 along with the details of the added comment if the operation is successful.</returns>
+    /// <remarks>
+    /// Example of a POST request to add a comment:
+    ///
+    ///     POST /posts/add-comment
+    ///     {
+    ///        "postId": "_post_id",
+    ///        "content": "This is a comment"
+    ///     }
+    ///
+    /// **Note**: You must be authenticated as a Super Admin, Author, or User to use this endpoint.
+    /// </remarks>
+    [HttpPost("add-comment")]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostAddCommentResponse))]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> AddCommentAsync([FromBody] PostAddCommentRequest model)
+    {
+        var result = await _postService.AddCommentAsync(model, User);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Adds a like to a specific post.
+    /// </summary>
+    /// <param name="postId">The identifier of the post to be liked.</param>
+    /// <returns>Returns status 200 if the operation is successful.</returns>
+    /// <remarks>
+    /// Example of a POST request to add a like to a post:
+    ///
+    ///     POST /posts/like/{postId}
+    ///
+    /// **Note**: You must be authenticated as a SuperAdmin, Author, or User to use this endpoint.
+    /// </remarks>
+    [HttpPost("like/{postId}")]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> AddLikeAsync([FromRoute] string postId)
+    {
+        await _postService.AddLikeAsync(postId, User);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Removes a like from a specific post.
+    /// </summary>
+    /// <param name="postId">The identifier of the post from which the like will be removed.</param>
+    /// <returns>Returns status 200 if the operation is successful.</returns>
+    /// <remarks>
+    /// Example of a DELETE request to remove a like from a post:
+    ///
+    ///     DELETE /posts/unlike/{postId}
+    ///
+    /// **Note**: You must be authenticated as a SuperAdmin, Author, or User to use this endpoint.
+    /// </remarks>
+    [HttpDelete("unlike/{postId}")]
+    [Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [SwaggerResponse(204, "NO_CONTENT")]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> RemoveLikeAsync([FromRoute] string postId)
+    {
+        await _postService.RemoveLikeAsync(postId, User);
+
+        return NoContent();
     }
 }
