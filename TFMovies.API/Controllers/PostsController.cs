@@ -87,7 +87,14 @@ public class PostsController : ControllerBase
     /// <summary>
     /// Retrieves a list of posts based on the specified filters.
     /// </summary> 
-    /// <param name="model">The page number to retrieve.</param>        
+    /// <param name="model">The page (page number to retrieve), limit (page size), sort ("rated" or "created"(default)), themeId.</param>
+    /// <returns>Returns status 200 along with a paginated list of posts matching the filter criteria if the operation is successful.</returns>     
+    /// <remarks>
+    /// Example of a GET request to retrieve a list of posts:    
+    ///
+    ///     GET /posts?page=1&amp;limit=10&amp;sort=created&amp;themeId=ThemeId1
+    ///         
+    /// </remarks>
     [HttpGet]
     [AllowAnonymous]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostGetAllResponse))]

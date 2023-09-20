@@ -126,15 +126,7 @@ public class PostService : IPostService
 
     public async Task<PostGetAllResponse> GetAllAsync(PostGetAllRequest model, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
-
-        var themeId = string.Empty;
-
-        if (!string.IsNullOrEmpty(model.Theme))
-        {
-            var themeDb = await GetThemeByNameAsync(model.Theme);
-            themeId = themeDb.Id;
-        }
+        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);        
         
         var paging = new PaginationFilter
         {
@@ -142,7 +134,7 @@ public class PostService : IPostService
             Page = model.Page
         };
 
-        var pagedPosts = await _postRepository.GetAllPagingAsync(paging, model.Sort, themeId);
+        var pagedPosts = await _postRepository.GetAllPagingAsync(paging, model.Sort, model.ThemeId);
 
         var data = pagedPosts.Data.Select(p => new PostShortInfoDto
         {
@@ -161,7 +153,7 @@ public class PostService : IPostService
             Limit = pagedPosts.Limit,
             TotalPages = pagedPosts.TotalPages,
             TotalRecords = pagedPosts.TotalRecords,
-            Theme = model.Theme,
+            ThemeId = model.ThemeId,
             Sort = model.Sort,
             Data = data
         };

@@ -6,7 +6,7 @@
         public int Limit { get; set; }
         public int TotalPages { get; set; }
         public int TotalRecords { get; set; }
-        public string? Theme { get; set; }
+        public string? ThemeId { get; set; }
         public string? Sort { get; set; }
 
         public IEnumerable<PostShortInfoDto>? Data { get; set; }

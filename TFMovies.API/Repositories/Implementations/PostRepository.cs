@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data;
@@ -8,7 +7,6 @@ using TFMovies.API.Extensions;
 using TFMovies.API.Filters;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Repositories.Interfaces;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace TFMovies.API.Repositories.Implementations;
 
