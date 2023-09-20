@@ -31,7 +31,7 @@ public class PostsController : ControllerBase
     ///     POST /posts/create
     ///     {
     ///        "coverImageUrl": "http://example.com/image.jpg",
-    ///        "theme": "Theme1",
+    ///        "themeId": "Theme1_Id",
     ///        "title": "Post Title",
     ///        "htmlContent": "<p>Post content here</p>",
     ///        "tags": ["tag1", "tag2", "tag3"]
@@ -46,7 +46,6 @@ public class PostsController : ControllerBase
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     public async Task<IActionResult> CreateAsync([FromBody] PostCreateRequest model)
     {
-
         var result = await _postService.CreateAsync(model, User);
 
         return Ok(result);
@@ -64,7 +63,8 @@ public class PostsController : ControllerBase
     ///     PUT /posts/{id}
     ///     {
     ///        "coverImageUrl": "http://example.com/image.jpg",
-    ///        "theme": "Theme2",
+    ///        "themeId": "Theme2_Id",
+    ///        "themeId": "Theme2_Id",
     ///        "title": "Updated Post Title",
     ///        "htmlContent": "<p>Updated post content here</p>",
     ///        "tags": ["tag4", "tag5"]
@@ -111,13 +111,14 @@ public class PostsController : ControllerBase
     /// Retrieves the details of a specific post by its ID.
     /// </summary>
     /// <param name="id">The unique identifier of the post.</param>
+    /// <param name="limit">The limit of other posts by the author.</param>
     /// <returns>Returns status 200 along with the detailed information of the post if the operation is successful.</returns>
     /// <remarks>
     /// Example of a GET request to retrieve a post:
     ///
-    ///     GET /posts/{id}
+    ///     GET /posts/{id}?limit=3
     ///
-    /// **Note**: You must be authenticated as a Super Admin, Author, or User to use this endpoint.
+    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
     /// </remarks>
     [HttpGet("{id}")]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
@@ -125,9 +126,9 @@ public class PostsController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetByIdAsync(string id)
+    public async Task<IActionResult> GetByIdAsync(string id, int limit)
     {
-        var result = await _postService.GetByIdAsync(id, User);
+        var result = await _postService.GetByIdAsync(id, User, limit);
 
         return Ok(result);
     }
@@ -146,7 +147,7 @@ public class PostsController : ControllerBase
     ///        "content": "This is a comment"
     ///     }
     ///
-    /// **Note**: You must be authenticated as a Super Admin, Author, or User to use this endpoint.
+    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
     /// </remarks>
     [HttpPost("{id}/comments")]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
@@ -171,7 +172,7 @@ public class PostsController : ControllerBase
     ///
     ///     POST /posts/{id}/likes
     ///
-    /// **Note**: You must be authenticated as a SuperAdmin, Author, or User to use this endpoint.
+    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
     /// </remarks>
     [HttpPost("{id}/likes")]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
@@ -196,7 +197,7 @@ public class PostsController : ControllerBase
     ///
     ///     DELETE /posts/{id}/likes
     ///
-    /// **Note**: You must be authenticated as a SuperAdmin, Author, or User to use this endpoint.
+    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
     /// </remarks>
     [HttpDelete("{id}/likes")]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]

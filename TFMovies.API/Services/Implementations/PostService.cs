@@ -51,7 +51,7 @@ public class PostService : IPostService
             throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
         }
 
-        var theme = await GetThemeByNameAsync(model.Theme);
+        var theme = await GetThemeByIdAsync(model.ThemeId);
 
         var post = new Post
         {
@@ -95,7 +95,7 @@ public class PostService : IPostService
 
         var user = await _userRepository.FindByIdAsync(postDb.UserId);
 
-        var theme = await GetThemeByNameAsync(model.Theme);
+        var theme = await GetThemeByIdAsync(model.ThemeId);
 
         postDb.CoverImageUrl = model.CoverImageUrl;
         postDb.ThemeId = theme.Id;
@@ -159,7 +159,7 @@ public class PostService : IPostService
         };
     }
 
-    public async Task<PostGetByIdResponse> GetByIdAsync(string id, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostGetByIdResponse> GetByIdAsync(string id, ClaimsPrincipal currentUserPrincipal, int limit)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
@@ -171,7 +171,7 @@ public class PostService : IPostService
         }
 
         //other Author's posts
-        var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, currentUser.Id);
+        var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, currentUser.Id, limit);
         
         var otherPostsDtos = otherPostsByAuthor?.Select(p => new PostByAuthorDto
         {
@@ -345,13 +345,15 @@ public class PostService : IPostService
         }
     }
 
-    private async Task<Theme> GetThemeByNameAsync(string themeName)
+    private async Task<Theme> GetThemeByIdAsync(string themeId)
     {
-        var theme = await _themeRepository.FindByNameAsync(themeName);
+        var theme = await _themeRepository.GetByIdAsync(themeId);
+        
         if (theme == null)
         {
-            throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.ThemeNotFound, themeName));
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.ThemeNotFound);
         }
+
         return theme;
     }
 

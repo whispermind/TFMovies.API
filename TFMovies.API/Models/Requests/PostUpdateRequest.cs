@@ -10,7 +10,7 @@ public class PostUpdateRequest
     public string CoverImageUrl { get; set; }
 
     [Required]
-    public string Theme { get; set; }
+    public string ThemeId { get; set; }
 
     [Required]
     public string Title { get; set; }
