@@ -6,4 +6,5 @@ namespace TFMovies.API.Repositories.Interfaces;
 public interface IPostLikeRepository : IBaseRepository<PostLike>
 {
     public Task<IEnumerable<Post>> GetUserFavoritePostsAsync(string userId);
+    public Task<PostLike?> GetPostLikeAsync(string postId, string userId);
 }

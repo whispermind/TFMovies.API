@@ -8,9 +8,9 @@ public interface IPostService
 {
     public Task<PostCreateResponse> CreateAsync(PostCreateRequest model, ClaimsPrincipal currentUserPrincipal);
     public Task<PostUpdateResponse> UpdateAsync(string id, PostUpdateRequest model);
-    public Task<PostGetAllResponse> GetAllAsync(int page, int limit, string? sort, string? theme, ClaimsPrincipal currentUserPrincipal);
+    public Task<PostGetAllResponse> GetAllAsync(PostGetAllRequest model, ClaimsPrincipal currentUserPrincipal);
     public Task<PostGetByIdResponse> GetByIdAsync(string id, ClaimsPrincipal currentUserPrincipal);
-    public Task<PostAddCommentResponse> AddCommentAsync(PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal);
-    public Task AddLikeAsync(string postId, ClaimsPrincipal currentUserPrincipal);
-    public Task RemoveLikeAsync(string postId, ClaimsPrincipal currentUserPrincipal);
+    public Task<PostAddCommentResponse> AddCommentAsync(string id, PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal);
+    public Task AddLikeAsync(string id, ClaimsPrincipal currentUserPrincipal);
+    public Task RemoveLikeAsync(string id, ClaimsPrincipal currentUserPrincipal);
 }

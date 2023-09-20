@@ -21,4 +21,12 @@ public class PostLikeRepository : BaseRepository<PostLike>, IPostLikeRepository
         return result;
     }
 
+    public async Task<PostLike?> GetPostLikeAsync(string postId, string userId)
+    {
+        var result = await _entities
+            .Where(pl => pl.PostId == postId && pl.UserId == userId)
+            .FirstOrDefaultAsync();
+
+        return result;
+    }
 }

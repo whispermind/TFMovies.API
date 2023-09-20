@@ -9,8 +9,8 @@ public class PostLike : BaseModel
     public string PostId { get; set; }
 
     [ForeignKey("User")]
-    public string? UserId { get; set; }
+    public string UserId { get; set; }
 
     public Post Post { get; set; }
-    public User? User { get; set; }
+    public User User { get; set; }
 }

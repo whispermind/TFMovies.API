@@ -10,7 +10,7 @@ namespace TFMovies.API.Controllers;
 
 [Route("themes")]
 [ApiController]
-[Authorize(Roles = RoleNames.SuperAdmin)]
+[Authorize(Roles = RoleNames.Admin)]
 public class ThemesController : ControllerBase
 {
     private readonly IThemeService _themeService;

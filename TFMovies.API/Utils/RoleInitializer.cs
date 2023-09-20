@@ -10,7 +10,7 @@ public class RoleInitializer
 {
     public static async Task InitializeRoles(RoleManager<IdentityRole> roleManager)
     {
-        await CreateRoleIfNotExists(roleManager, RoleNames.SuperAdmin);
+        await CreateRoleIfNotExists(roleManager, RoleNames.Admin);
         await CreateRoleIfNotExists(roleManager, RoleNames.User);
         await CreateRoleIfNotExists(roleManager, RoleNames.Author);
     }

@@ -1,14 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Data;
-using System.Linq.Expressions;
+﻿using System.Data;
 using System.Net;
 using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data.Entities;
 using TFMovies.API.Data.Entitiesl;
 using TFMovies.API.Exceptions;
-using TFMovies.API.Extensions;
 using TFMovies.API.Filters;
+using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
 using TFMovies.API.Repositories.Interfaces;
@@ -126,43 +124,27 @@ public class PostService : IPostService
         return response;
     }
 
-    public async Task<PostGetAllResponse> GetAllAsync(int page, int limit, string? sort, string? theme, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostGetAllResponse> GetAllAsync(PostGetAllRequest model, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
-        IQueryable<Post> query = _postRepository.Query()
-            .Include(p => p.User)
-            .Include(p => p.Theme)
-            .Include(p => p.PostTags)
-                .ThenInclude(pt => pt.Tag)
-            .Include(p => p.PostLikes);
+        var themeId = string.Empty;
 
-        if (!string.IsNullOrEmpty(theme))
+        if (!string.IsNullOrEmpty(model.Theme))
         {
-            var themeDb = await GetThemeByNameAsync(theme);
-            query = query.Where(post => post.ThemeId == themeDb.Id);
+            var themeDb = await GetThemeByNameAsync(model.Theme);
+            themeId = themeDb.Id;
         }
-
-        Expression<Func<Post, object>> sortSelector;
-        switch (sort?.ToLower())
+        
+        var paging = new PaginationFilter
         {
-            case "rated":
-                sortSelector = p => p.PostLikes.Count;
-                break;
-            default:
-                sortSelector = p => p.CreatedAt; // default
-                break;
-        }
-
-        var pagination = new PaginationFilter
-        {
-            Limit = limit,
-            Page = page
+            Limit = model.Limit,
+            Page = model.Page
         };
 
-        var pagedResult = await query.GetPagedDataAsync(pagination, sortSelector, "desc");
+        var pagedPosts = await _postRepository.GetAllPagingAsync(paging, model.Sort, themeId);
 
-        var data = pagedResult.Data.Select(p => new PostShortInfoDto
+        var data = pagedPosts.Data.Select(p => new PostShortInfoDto
         {
             Id = p.Id,
             CoverImageUrl = p.CoverImageUrl,
@@ -175,12 +157,12 @@ public class PostService : IPostService
 
         return new PostGetAllResponse
         {
-            Page = pagedResult.Page,
-            Limit = pagedResult.Limit,
-            TotalPages = pagedResult.TotalPages,
-            TotalRecords = pagedResult.TotalRecords,
-            Theme = theme,
-            Sort = sort,
+            Page = pagedPosts.Page,
+            Limit = pagedPosts.Limit,
+            TotalPages = pagedPosts.TotalPages,
+            TotalRecords = pagedPosts.TotalRecords,
+            Theme = model.Theme,
+            Sort = model.Sort,
             Data = data
         };
     }
@@ -189,35 +171,29 @@ public class PostService : IPostService
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
-        var post = await _postRepository.Query()
-            .Include(p => p.User)
-            .Include(p => p.Theme)
-            .Include(p => p.PostTags)
-                .ThenInclude(pt => pt.Tag)
-            .Include(p => p.PostComments)
-                .ThenInclude(pc => pc.User)
-            .Include(p => p.PostLikes)
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var post = await _postRepository.GetFullByIdAsync(id);        
 
         if (post == null)
         {
             throw new ServiceException(HttpStatusCode.NotFound, ErrorMessages.PostNotFound);
         }
 
-        var otherPostsFromAuthor = await _postRepository.Query()
-            .Where(p => p.UserId == post.UserId && p.Id != id)
-            .Select(p => new AuthorOtherPosts
-            {
-                Id = p.Id,
-                Title = p.Title,
-                CreatedAt = p.CreatedAt,
-                Tags = p.PostTags.Select(pt => pt.Tag.Name).ToList()
-            })
-            .OrderByDescending(p => p.CreatedAt)
-            .Take(DefaultPaginationValues.AuthorOtherPostsLimit)
-            .ToListAsync();
+        //other Author's posts
+        var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, currentUser.Id);
+        
+        var otherPostsDtos = otherPostsByAuthor?.Select(p => new PostByAuthorDto
+        {
+            Id = p.Id,
+            Title = p.Title,
+            CreatedAt = p.CreatedAt,
+            Tags = p.PostTags.Select(pt => pt.Tag.Name).ToList()
+        });
+        
 
-        var commentDetails = post.PostComments?.Select(pc => new CommentDetail
+        //comments
+        var comments = await _postCommentRepository.GetAllByPostIdAsync(id);
+
+        var commentDetails = comments?.Select(pc => new CommentDetailDto
         {
             Author = pc.Author,
             Content = pc.Content,
@@ -239,14 +215,14 @@ public class PostService : IPostService
             CommentsCount = post.PostComments?.Count ?? 0,
             Tags = GetTagNamesFromPost(post),
             Comments = commentDetails,
-            AuthorOtherPosts = otherPostsFromAuthor
+            PostsByAuthor = otherPostsDtos
         };
 
         return response;
     }
-    public async Task<PostAddCommentResponse> AddCommentAsync(PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostAddCommentResponse> AddCommentAsync(string id, PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal)
     {
-        var postDb = await GetPostByIdAsync(model.PostId);
+        var postDb = await GetPostByIdAsync(id);
 
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
@@ -257,7 +233,7 @@ public class PostService : IPostService
 
         var newComment = new PostComment
         {
-            PostId = model.PostId,
+            PostId = id,
             UserId = currentUser.Id,
             Content = model.Content,
             CreatedAt = DateTime.UtcNow
@@ -274,7 +250,7 @@ public class PostService : IPostService
         };
     }
 
-    public async Task AddLikeAsync(string postId, ClaimsPrincipal currentUserPrincipal)
+    public async Task AddLikeAsync(string id, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
@@ -285,14 +261,14 @@ public class PostService : IPostService
 
         var newPostLike = new PostLike
         {
-            PostId = postId,
+            PostId = id,
             UserId = currentUser.Id
         };
 
         await _postLikeRepository.CreateAsync(newPostLike);
     }
 
-    public async Task RemoveLikeAsync(string postId, ClaimsPrincipal currentUserPrincipal)
+    public async Task RemoveLikeAsync(string id, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
@@ -301,9 +277,7 @@ public class PostService : IPostService
             throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
         }
 
-        var postLikeDb = await _postLikeRepository.Query()
-                             .Where(pl => pl.PostId == postId && pl.UserId == currentUser.Id)
-                             .FirstOrDefaultAsync();
+        var postLikeDb = await _postLikeRepository.GetPostLikeAsync(id, currentUser.Id);
 
         if (postLikeDb != null)
         {
@@ -384,7 +358,7 @@ public class PostService : IPostService
         var theme = await _themeRepository.FindByNameAsync(themeName);
         if (theme == null)
         {
-            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.ThemeNotFound);
+            throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.ThemeNotFound, themeName));
         }
         return theme;
     }

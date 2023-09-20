@@ -442,7 +442,7 @@ public class UserService : IUserService
 
     private bool IsValidRole(string role)
     {        
-        var validRoles = new List<string> { RoleNames.SuperAdmin, RoleNames.User, RoleNames.Author };
+        var validRoles = new List<string> { RoleNames.Admin, RoleNames.User, RoleNames.Author };
         return validRoles.Contains(role);
     }
 }

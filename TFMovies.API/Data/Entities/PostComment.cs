@@ -8,7 +8,7 @@ public class PostComment : BaseModel
     public string PostId { get; set; }
 
     [ForeignKey("User")]
-    public string? UserId { get; set; }
+    public string UserId { get; set; }
 
     public string Content { get; set; }
 
@@ -16,8 +16,8 @@ public class PostComment : BaseModel
 
     public Post Post { get; set; }
 
-    public User? User { get; set; }
+    public User User { get; set; }
 
     [NotMapped]
-    public string Author => User?.Nickname ?? "Deleted User";
+    public string Author => User.Nickname;
 }

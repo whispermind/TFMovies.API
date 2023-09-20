@@ -13,7 +13,14 @@ public static class IQueryableExtensions
         Expression<Func<T, object>> sortSelector,
         string sortOrder)
     {
-        int totalRecords = await query.CountAsync();
+        var totalRecords = await query.CountAsync();
+
+        var totalPages = (int)Math.Ceiling(totalRecords / (double)paginationFilter.Limit);
+
+        if (paginationFilter.Page > totalPages)
+        {
+            paginationFilter.Page = totalPages;
+        }
 
         if (string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase))
         {
@@ -33,7 +40,7 @@ public static class IQueryableExtensions
         {
             Page = paginationFilter.Page,
             Limit = paginationFilter.Limit,
-            TotalPages = (int)Math.Ceiling(totalRecords / (double)paginationFilter.Limit),
+            TotalPages = totalPages,
             TotalRecords = totalRecords,
             Data = data
         };
