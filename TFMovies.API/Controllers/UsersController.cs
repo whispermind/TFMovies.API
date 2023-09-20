@@ -309,12 +309,22 @@ public class UsersController : ControllerBase
     // helper methods
     private string IpAddress()
     {
+        string ipAddressWithPort = null;
+
         if (Request.Headers.ContainsKey("X-Forwarded-For"))
-            return Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? string.Empty;
+            ipAddressWithPort = Request.Headers["X-Forwarded-For"].FirstOrDefault();
         else
-            return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty;
+            ipAddressWithPort = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString();
+
+        if (ipAddressWithPort != null)
+        {
+            var ipAndPort = ipAddressWithPort.Split(':');
+            return ipAndPort.Length > 1 ? ipAndPort[0] : ipAddressWithPort;
+        }
+
+        return string.Empty;
     }
-    
+
     private string GenerateVerifyEmailUrl() => $"{ExtractOriginOrDefault()}/signup";
     private string GenerateValidateResetTokenUrl() => $"{ExtractOriginOrDefault()}/passrecovery";
 
