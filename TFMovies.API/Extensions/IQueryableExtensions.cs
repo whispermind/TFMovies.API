@@ -13,6 +13,18 @@ public static class IQueryableExtensions
         Expression<Func<T, object>> sortSelector,
         string sortOrder)
     {
+        if (!await query.AnyAsync())
+        {
+            return new PagedResult<T>
+            {
+                Page = paginationFilter.Page,
+                Limit = paginationFilter.Limit,
+                TotalPages = 0,
+                TotalRecords = 0,
+                Data = new List<T>()
+            };
+        }
+
         var totalRecords = await query.CountAsync();
 
         var totalPages = (int)Math.Ceiling(totalRecords / (double)paginationFilter.Limit);
