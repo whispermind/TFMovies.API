@@ -27,4 +27,14 @@ public class TagRepository : BaseRepository<Tag>, ITagRepository
         
         return result;
     }
+
+    public async Task<IEnumerable<Tag>> GetTopTagsAsync(int limit)
+    {
+        var result = await _entities
+            .OrderByDescending(e => e.PostTags.Count)
+            .Take(limit)
+            .ToListAsync();
+
+        return result;
+    }
 }

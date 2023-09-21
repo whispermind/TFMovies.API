@@ -12,6 +12,7 @@ public interface IUserRepository
     public Task<User> FindByEmailAsync(string email);
     public Task<IdentityResult> UpdateAsync(User user);
     public Task<IdentityResult> DeleteAsync(User user);
+    public Task<IEnumerable<User>> GetUsersByIdsAsync(IEnumerable<string> userIds);
 
     //Manage Password
     public Task<bool> CheckPasswordAsync(User user, string password);

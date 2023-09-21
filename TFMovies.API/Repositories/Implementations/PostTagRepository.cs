@@ -18,5 +18,5 @@ public class PostTagRepository : BaseRepository<PostTag>, IPostTagRepository
                    .ToListAsync();
        
         return result;
-    }
+    }    
 }

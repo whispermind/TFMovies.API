@@ -40,6 +40,22 @@ public class UserRepository : IUserRepository
         return await _userManager.DeleteAsync(user);
     }
 
+    public async Task<IEnumerable<User>> GetUsersByIdsAsync(IEnumerable<string> userIds)
+    {
+        var users = new List<User>();
+
+        foreach (var userId in userIds)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            
+            if (user != null)
+            {
+                users.Add(user);
+            }
+        }
+        return users;
+    }
+
     //Manage Password
     public async Task<bool> CheckPasswordAsync(User user, string password)
     {

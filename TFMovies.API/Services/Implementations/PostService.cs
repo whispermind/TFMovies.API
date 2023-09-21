@@ -42,14 +42,12 @@ public class PostService : IPostService
         _postLikeRepository = postLikeRepository;
     }
 
+    #region CreatePost
     public async Task<PostCreateResponse> CreateAsync(PostCreateRequest model, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
-        if (currentUser == null)
-        {
-            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
-        }
+        CheckUserFoundOrThrow(currentUser);
 
         var theme = await GetThemeByIdAsync(model.ThemeId);
 
@@ -88,7 +86,9 @@ public class PostService : IPostService
 
         return response;
     }
+    #endregion
 
+    #region UpdatePost
     public async Task<PostUpdateResponse> UpdateAsync(string id, PostUpdateRequest model)
     {
         var postDb = await GetPostByIdAsync(id);
@@ -123,7 +123,9 @@ public class PostService : IPostService
 
         return response;
     }
+    #endregion
 
+    #region GetAllPosts
     public async Task<PostGetAllResponse> GetAllAsync(PostGetAllRequest model, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);        
@@ -158,10 +160,14 @@ public class PostService : IPostService
             Data = data
         };
     }
+    #endregion
 
+    #region GetPostById
     public async Task<PostGetByIdResponse> GetByIdAsync(string id, ClaimsPrincipal currentUserPrincipal, int limit)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+
+        CheckUserFoundOrThrow(currentUser);
 
         var post = await _postRepository.GetFullByIdAsync(id);        
 
@@ -170,7 +176,9 @@ public class PostService : IPostService
             throw new ServiceException(HttpStatusCode.NotFound, ErrorMessages.PostNotFound);
         }
 
-        //other Author's posts
+        //Author's other posts
+        CheckLimitValue(ref limit, DefaultLimitValues.AuthorOtherPostsLimit);
+
         var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, currentUser.Id, limit);
         
         var otherPostsDtos = otherPostsByAuthor?.Select(p => new PostByAuthorDto
@@ -212,16 +220,16 @@ public class PostService : IPostService
 
         return response;
     }
+    #endregion
+
+    #region AddComment
     public async Task<PostAddCommentResponse> AddCommentAsync(string id, PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal)
     {
         var postDb = await GetPostByIdAsync(id);
 
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
-        if (currentUser == null)
-        {
-            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
-        }
+        CheckUserFoundOrThrow(currentUser);
 
         var newComment = new PostComment
         {
@@ -241,15 +249,14 @@ public class PostService : IPostService
             Author = newComment.Author
         };
     }
+    #endregion
 
+    #region AddLike
     public async Task AddLikeAsync(string id, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
-        if (currentUser == null)
-        {
-            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
-        }
+        CheckUserFoundOrThrow(currentUser);
 
         var newPostLike = new PostLike
         {
@@ -259,15 +266,14 @@ public class PostService : IPostService
 
         await _postLikeRepository.CreateAsync(newPostLike);
     }
+    #endregion
 
+    #region RemoveLike
     public async Task RemoveLikeAsync(string id, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
-        if (currentUser == null)
-        {
-            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
-        }
+        CheckUserFoundOrThrow(currentUser);
 
         var postLikeDb = await _postLikeRepository.GetPostLikeAsync(id, currentUser.Id);
 
@@ -276,8 +282,87 @@ public class PostService : IPostService
             await _postLikeRepository.DeleteAsync(postLikeDb);
         }
     }
+    #endregion
 
-    //helpers 
+    #region GetTopTags
+    public async Task<IEnumerable<TagDto>> GetTopTagsAsync(int limit)
+    {
+        var tagsDb = await _tagRepository.GetTopTagsAsync(limit);
+
+        var result = tagsDb?.Select(t => new TagDto
+        {
+            Id = t.Id,
+            Name = t.Name
+        }) ?? Enumerable.Empty<TagDto>();
+
+        return result;
+    }
+    #endregion
+
+    #region GetTopAuthors
+    public async Task<IEnumerable<UserShortDto>> GetTopAuthorsAsync(int limit)
+    {
+        CheckLimitValue(ref limit, DefaultLimitValues.TopRecordsLimit);
+
+        var topAuthorLikes = await _postLikeRepository.GetAuthorIdsByLikeCountsAsync(limit);
+
+        var topAuthorIds = topAuthorLikes.Select(a => a.AuthorId).ToList();
+
+        var topAuthorsDb = await _userRepository.GetUsersByIdsAsync(topAuthorIds);
+
+        var result = topAuthorsDb?.Select(a => new UserShortDto
+        {
+            Id = a.Id,
+            Nickname = a.Nickname,
+            Email = a.Email
+        }) ?? Enumerable.Empty<UserShortDto>();
+
+        return result;
+    }
+    #endregion
+
+    #region GetUserFavoritePost
+    public async Task<IEnumerable<PostShortInfoDto>> GetUserFavoritePostAsync(ClaimsPrincipal currentUserPrincipal)
+    {
+        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+
+        CheckUserFoundOrThrow(currentUser);
+
+        var postsDb = await _postLikeRepository.GetUserFavoritePostsAsync(currentUser.Id);
+
+        var result = postsDb?.Select(p => new PostShortInfoDto
+        {
+            Id = p.Id,
+            CoverImageUrl = p.CoverImageUrl,
+            Title = p.Title,
+            CreatedAt = p.CreatedAt,
+            Author = p.User.Nickname,
+            IsLiked = true,
+            Tags = GetTagNamesFromPost(p)
+        }).ToList() ?? new List<PostShortInfoDto>();    
+
+        return result;
+    }
+    #endregion
+
+    #region PrivateMethods      
+
+    private static void CheckUserFoundOrThrow(User user)
+    {
+        if (user == null)
+        {
+            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
+        }
+    }
+    private int CheckLimitValue(ref int limit, int defaultValue)
+    {
+        if (limit <= 0)
+        {
+            limit = defaultValue;
+        }
+
+        return limit;
+    }
     private async Task<List<Tag>> GetOrCreateTagsAsync(List<string> tagNames)
     {
         CleanAndDistinctTags(tagNames);
@@ -381,4 +466,5 @@ public class PostService : IPostService
     {
         return post.PostTags.Select(pt => pt.Tag.Name).ToList();
     }
+    #endregion
 }

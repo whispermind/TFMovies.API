@@ -31,11 +31,7 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
     }
 
     public async Task<IEnumerable<Post>> GetOthersAsync(string excludeId, string authorId, int limit)
-    {
-        if (limit <= 0)
-        {
-            limit = DefaultPaginationValues.AuthorOtherPostsLimit;
-        }
+    {        
         var result = await _entities
             .Where(p => p.UserId == authorId && p.Id != excludeId)            
             .OrderByDescending(p => p.CreatedAt)
