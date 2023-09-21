@@ -29,6 +29,6 @@ public static class ErrorMessages
     public const string PostNotFound = "The post not found";
 
     //Theme
-    public const string ThemeNotFound = "The theme \"{0}\" not found";
+    public const string ThemeNotFound = "The theme not found";
     public const string ThemeNameConflict = "The theme \"{0}\" already exists";
 }

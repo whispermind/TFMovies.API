@@ -13,4 +13,5 @@ public interface IBaseRepository<T>
     public Task DeleteByIdAsync(string id);
     public Task DeleteRangeAsync(IEnumerable<T> entities);
     public Task SaveChangesAsync();
+    public IQueryable<T> Query();
 }

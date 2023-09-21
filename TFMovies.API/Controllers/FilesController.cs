@@ -10,7 +10,7 @@ namespace TFMovies.API.Controllers;
 
 [Route("files")]
 [ApiController]
-[Authorize(Roles = RoleNames.SuperAdmin + "," + RoleNames.Author)]
+[Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author)]
 [Produces("application/json")]
 public class FilesController : ControllerBase
 {
