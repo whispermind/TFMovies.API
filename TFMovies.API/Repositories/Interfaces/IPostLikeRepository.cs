@@ -8,5 +8,5 @@ public interface IPostLikeRepository : IBaseRepository<PostLike>
 {
     public Task<IEnumerable<Post>> GetUserFavoritePostsAsync(string userId);
     public Task<PostLike?> GetPostLikeAsync(string postId, string userId);
-    public Task<IEnumerable<AuthorLikeCountDto>> GetAuthorIdsByLikeCountsAsync(int limit);
+    public Task<IEnumerable<UserPostLikeCountsDto>> GetUserIdsByPostLikeCountsAsync(int limit, string? order);
 }

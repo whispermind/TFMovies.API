@@ -6,5 +6,5 @@ public interface ITagRepository : IBaseRepository<Tag>
 {
     public Task<Tag?> FindByNameAsync(string name);
     public Task<IEnumerable<Tag>> FindByNamesAsync(IEnumerable<string> tagNames);
-    public Task<IEnumerable<Tag>> GetTopTagsAsync(int limit);
+    public Task<IEnumerable<Tag>> GetTagsAsync(int limit, string? sort, string? order);
 }

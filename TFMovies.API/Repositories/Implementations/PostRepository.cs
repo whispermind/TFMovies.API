@@ -58,7 +58,7 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
         Expression<Func<Post, object>> sortSelector;
         switch (sort)
         {
-            case "rated":
+            case SortOptions.Rated:
                 sortSelector = p => p.PostLikes.Count;
                 break;
             default:

@@ -11,6 +11,7 @@ using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
 using TFMovies.API.Repositories.Interfaces;
 using TFMovies.API.Services.Interfaces;
+using TFMovies.API.Utils;
 
 namespace TFMovies.API.Services.Implementations;
 
@@ -177,7 +178,7 @@ public class PostService : IPostService
         }
 
         //Author's other posts
-        CheckLimitValue(ref limit, DefaultLimitValues.AuthorOtherPostsLimit);
+        LimitValueUtils.CheckLimitValue(ref limit, DefaultLimitValues.AuthorOtherPostsLimit);
 
         var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, currentUser.Id, limit);
         
@@ -284,42 +285,22 @@ public class PostService : IPostService
     }
     #endregion
 
-    #region GetTopTags
-    public async Task<IEnumerable<TagDto>> GetTopTagsAsync(int limit)
+    #region GetTags
+    public async Task<IEnumerable<TagDto>> GetTagsAsync(int limit, string sort, string order)
     {
-        var tagsDb = await _tagRepository.GetTopTagsAsync(limit);
+        var sortOption = (sort ?? string.Empty).ToLower();
 
-        var result = tagsDb?.Select(t => new TagDto
+        LimitValueUtils.CheckLimitValue(ref limit, DefaultLimitValues.TopRatedLimit);
+        
+        var tagsDb = await _tagRepository.GetTagsAsync(limit, sort, order);
+
+        return tagsDb?.Select(t => new TagDto
         {
             Id = t.Id,
             Name = t.Name
-        }) ?? Enumerable.Empty<TagDto>();
-
-        return result;
-    }
-    #endregion
-
-    #region GetTopAuthors
-    public async Task<IEnumerable<UserShortDto>> GetTopAuthorsAsync(int limit)
-    {
-        CheckLimitValue(ref limit, DefaultLimitValues.TopRecordsLimit);
-
-        var topAuthorLikes = await _postLikeRepository.GetAuthorIdsByLikeCountsAsync(limit);
-
-        var topAuthorIds = topAuthorLikes.Select(a => a.AuthorId).ToList();
-
-        var topAuthorsDb = await _userRepository.GetUsersByIdsAsync(topAuthorIds);
-
-        var result = topAuthorsDb?.Select(a => new UserShortDto
-        {
-            Id = a.Id,
-            Nickname = a.Nickname,
-            Email = a.Email
-        }) ?? Enumerable.Empty<UserShortDto>();
-
-        return result;
-    }
-    #endregion
+        }) ?? Enumerable.Empty<TagDto>();      
+    }       
+    #endregion    
 
     #region GetUserFavoritePost
     public async Task<IEnumerable<PostShortInfoDto>> GetUserFavoritePostAsync(ClaimsPrincipal currentUserPrincipal)
@@ -345,24 +326,14 @@ public class PostService : IPostService
     }
     #endregion
 
-    #region PrivateMethods      
-
+    #region PrivateMethods    
     private static void CheckUserFoundOrThrow(User user)
     {
         if (user == null)
         {
             throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
         }
-    }
-    private int CheckLimitValue(ref int limit, int defaultValue)
-    {
-        if (limit <= 0)
-        {
-            limit = defaultValue;
-        }
-
-        return limit;
-    }
+    }    
     private async Task<List<Tag>> GetOrCreateTagsAsync(List<string> tagNames)
     {
         CleanAndDistinctTags(tagNames);

@@ -4,6 +4,9 @@ using TFMovies.API.Data;
 using TFMovies.API.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using TFMovies.API.Models.Dto;
+using System.Linq.Expressions;
+using TFMovies.API.Common.Constants;
+using Microsoft.Data.SqlClient;
 
 namespace TFMovies.API.Repositories.Implementations;
 
@@ -37,21 +40,29 @@ public class PostLikeRepository : BaseRepository<PostLike>, IPostLikeRepository
         return result;
     }
 
-    public async Task<IEnumerable<AuthorLikeCountDto>> GetAuthorIdsByLikeCountsAsync(int limit)
+    public async Task<IEnumerable<UserPostLikeCountsDto>> GetUserIdsByPostLikeCountsAsync(int limit, string? order)
     {
-        var result = await _entities
-            .Include(pl => pl.Post)
-            .Where(pl => pl.Post != null)
-            .GroupBy(pl => pl.Post.UserId)
-            .Select(g => new AuthorLikeCountDto
-            {
-                AuthorId = g.Key,
-                LikeCount = g.Count()
-            })
-            .OrderByDescending(g => g.LikeCount)
-            .Take(limit)
-            .ToListAsync();
+        IQueryable<UserPostLikeCountsDto> query = _entities
+        .Include(pl => pl.Post)
+        .Where(pl => pl.Post != null)
+        .GroupBy(pl => pl.Post.UserId)
+        .Select(g => new UserPostLikeCountsDto
+        {
+            AuthorId = g.Key,
+            LikeCount = g.Count()
+        });
 
-        return result;
-    }
+        if (order == "asc")
+        {
+            query = query.OrderBy(g => g.LikeCount);
+        }
+        else
+        {
+            query = query.OrderByDescending(g => g.LikeCount);
+        }
+
+        var result = await query.Take(limit).ToListAsync();
+
+        return result;       
+    }    
 }

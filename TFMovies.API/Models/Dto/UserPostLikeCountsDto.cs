@@ -1,6 +1,6 @@
 ﻿namespace TFMovies.API.Models.Dto;
 
-public class AuthorLikeCountDto
+public class UserPostLikeCountsDto
 {
     public string AuthorId { get; set; }
     public int LikeCount { get; set; }

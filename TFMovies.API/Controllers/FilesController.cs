@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using System.Data;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Integrations;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
+
 namespace TFMovies.API.Controllers;
 
 [Route("files")]

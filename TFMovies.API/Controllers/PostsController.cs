@@ -214,67 +214,19 @@ public class PostsController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves the list of top tags.
-    /// </summary>   
-    /// <param name="limit">Limit the number of records returned.</param>
-    /// <returns>Returns status 200 along with the list of top tags if the operation is successful.</returns>
-    /// <remarks>
-    /// Example of a GET request to retrieve top tags:
-    ///
-    ///     GET /posts/top-tags?limit=3
-    ///  
-    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
-    /// </remarks>
-    [HttpGet("top-tags")]
-    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<TagDto>))]
-    [SwaggerResponse(401, "UNAUTHORIZED")]
-    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetTopTagsAsync(int limit)
-    {
-        var result = await _postService.GetTopTagsAsync(limit);
-
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// Retrieves the list of top authors.
-    /// </summary>   
-    /// <param name="limit">Limit the number of records returned.</param>
-    /// <returns>Returns status 200 along with the list of top authors if the operation is successful.</returns>
-    /// <remarks>
-    /// Example of a GET request to retrieve top authors:
-    ///
-    ///     GET /posts/top-authors?limit=3
-    /// 
-    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
-    /// </remarks>
-    [HttpGet("top-authors")]
-    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortDto>))]
-    [SwaggerResponse(401, "UNAUTHORIZED")]
-    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetTopAuthorsAsync(int limit)
-    {
-        var result = await _postService.GetTopAuthorsAsync(limit);
-
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// Retrieves the user's favorite posts.
+    /// Retrieves the liked posts by user.
     /// </summary>    
     /// <returns>Returns status 200 along with the short information of the posts if the operation is successful.</returns>
     /// <remarks>
     /// Example of a GET request to retrieve a post:
     ///
-    ///     GET /posts/favorites
+    ///     GET /posts/liked-by/me
     ///
     /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
     /// </remarks>
-    [HttpGet("favorites")]
+    [HttpGet("liked-by/me")]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<PostShortInfoDto>)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<PostShortInfoDto>))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
