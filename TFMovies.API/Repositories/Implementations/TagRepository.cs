@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using TFMovies.API.Common.Constants;
 using TFMovies.API.Data;
 using TFMovies.API.Data.Entities;
 using TFMovies.API.Repositories.Interfaces;
@@ -25,6 +27,38 @@ public class TagRepository : BaseRepository<Tag>, ITagRepository
                     .Where(t => tagNames.Contains(t.Name))
                     .ToListAsync();
         
+        return result;
+    }
+
+    public async Task<IEnumerable<Tag>> GetTagsAsync(int limit, string? sort, string? order)
+    {
+        IQueryable<Tag> query = _entities; 
+
+        Expression<Func<Tag, object>> sortSelector;
+        
+        switch (sort)
+        {
+            case SortOptions.Rated:
+                sortSelector = t => t.PostTags.Count();
+                break;
+            default:
+                sortSelector = t => t.Name;
+                break;
+        }
+
+        if (string.Equals(order, "asc", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.OrderBy(sortSelector);
+        }
+        else
+        {
+            query = query.OrderByDescending(sortSelector);
+        }
+
+        var result = await query
+                     .Take(limit)
+                     .ToListAsync();
+
         return result;
     }
 }

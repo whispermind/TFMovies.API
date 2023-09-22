@@ -18,7 +18,7 @@ public static class ErrorMessages
     public const string UserNotFound = "User with the provided email not found.";
     public const string UnconfirmedEmail = "Email address has not been confirmed yet. Please check your inbox for the confirmation link.";
     public const string InvalidRole = "Invalid Role specified.";
-    public const string UpdateRoleFailed = "Error updating user role";
+    public const string UpdateRoleFailed = "Error updating user role";    
 
     // Files exception
     public const string UploadedFileInvalid = "No file uploaded or the file name is invalid.";

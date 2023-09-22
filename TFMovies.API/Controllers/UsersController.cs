@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using EllipticCurve.Utils;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
+using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -304,6 +306,32 @@ public class UsersController : ControllerBase
         await _userService.ChangeRoleAsync(newRole, User);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Retrieves the list of top authors.
+    /// </summary>   
+    /// <param name="limit">Limit the number of records returned.</param>
+    /// <param name="order">Specifies the order by which records are sorted. It's an optional parameter with the default value set to "desc".</param>
+    /// <returns>Returns status 200 along with the list of top authors if the operation is successful.</returns>
+    /// <remarks>
+    /// Example of a GET request to retrieve top authors:
+    ///
+    ///     GET /users/authors?limit=3
+    ///     GET /users/authors?limit=3&amp;order=desc
+    /// 
+    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
+    /// </remarks>
+    [HttpGet("authors")]
+    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortDto>))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> GetAuthorsAsync(int limit, string order = "desc")
+    {
+        var result = await _userService.GetAuthorsAsync(limit, order);
+
+        return Ok(result);
     }
 
     // helper methods

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using TFMovies.API.Common.Constants;
+using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
 using TFMovies.API.Services.Interfaces;
@@ -111,7 +112,7 @@ public class PostsController : ControllerBase
     /// Retrieves the details of a specific post by its ID.
     /// </summary>
     /// <param name="id">The unique identifier of the post.</param>
-    /// <param name="limit">The limit of other posts by the author.</param>
+    /// <param name="limit">Limit the number of records returned.</param>
     /// <returns>Returns status 200 along with the detailed information of the post if the operation is successful.</returns>
     /// <remarks>
     /// Example of a GET request to retrieve a post:
@@ -210,5 +211,29 @@ public class PostsController : ControllerBase
         await _postService.RemoveLikeAsync(id, User);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Retrieves the liked posts by user.
+    /// </summary>    
+    /// <returns>Returns status 200 along with the short information of the posts if the operation is successful.</returns>
+    /// <remarks>
+    /// Example of a GET request to retrieve a post:
+    ///
+    ///     GET /posts/liked-by/me
+    ///
+    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
+    /// </remarks>
+    [HttpGet("liked-by/me")]
+    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<PostShortInfoDto>))]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> GetUserFavoritePostAsync()
+    {
+        var result = await _postService.GetUserFavoritePostAsync(User);
+
+        return Ok(result);
     }
 }

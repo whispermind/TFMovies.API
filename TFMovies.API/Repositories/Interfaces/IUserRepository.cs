@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using TFMovies.API.Data.Entities;
+using TFMovies.API.Filters;
+using TFMovies.API.Models.Dto;
 
 namespace TFMovies.API.Repositories.Interfaces;
 
@@ -12,6 +14,8 @@ public interface IUserRepository
     public Task<User> FindByEmailAsync(string email);
     public Task<IdentityResult> UpdateAsync(User user);
     public Task<IdentityResult> DeleteAsync(User user);
+    public Task<IEnumerable<User>> GetUsersByIdsAsync(IEnumerable<string> userIds);
+    public Task<IEnumerable<User>> GetAllAsync();
 
     //Manage Password
     public Task<bool> CheckPasswordAsync(User user, string password);
@@ -21,4 +25,5 @@ public interface IUserRepository
     public Task<IdentityResult> AddToRoleAsync(User user, string role);
     public Task<IEnumerable<string>> GetRolesAsync(User user);
     public Task<IdentityResult> RemoveFromRolesAsync(User user, IEnumerable<string> roles);
+    public Task<bool> IsInRoleAsync(User user, string role);
 }
