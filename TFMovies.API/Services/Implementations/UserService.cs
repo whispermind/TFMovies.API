@@ -259,11 +259,9 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<IEnumerable<UserShortDto>> GetAuthorsAsync(int limit, string order)
+    public async Task<IEnumerable<UserShortDto>> GetAuthorsAsync(SortFilterRequest model)
     {
-        LimitValueUtils.CheckLimitValue(ref limit, DefaultLimitValues.TopRatedLimit);
-
-        var topUsersByPostLikeCounts = await _postLikeRepository.GetUserIdsByPostLikeCountsAsync(limit, order);
+        var topUsersByPostLikeCounts = await _postLikeRepository.GetUserIdsByPostLikeCountsAsync(model.Limit, model.Order);
 
         var userIds = topUsersByPostLikeCounts.Select(a => a.AuthorId).ToList();
 

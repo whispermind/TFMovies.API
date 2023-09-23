@@ -178,7 +178,7 @@ public class PostService : IPostService
         }
 
         //Author's other posts
-        LimitValueUtils.CheckLimitValue(ref limit, DefaultLimitValues.AuthorOtherPostsLimit);
+        //LimitValueUtils.CheckLimitValue(ref limit, LimitValues.AuthorOtherPostsLimit);
 
         var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, currentUser.Id, limit);
         
@@ -286,13 +286,11 @@ public class PostService : IPostService
     #endregion
 
     #region GetTags
-    public async Task<IEnumerable<TagDto>> GetTagsAsync(int limit, string sort, string order)
+    public async Task<IEnumerable<TagDto>> GetTagsAsync(SortFilterRequest model)
     {
-        var sortOption = (sort ?? string.Empty).ToLower();
-
-        LimitValueUtils.CheckLimitValue(ref limit, DefaultLimitValues.TopRatedLimit);
+        var sortOption = (model.Sort ?? string.Empty).ToLower();       
         
-        var tagsDb = await _tagRepository.GetTagsAsync(limit, sort, order);
+        var tagsDb = await _tagRepository.GetTagsAsync(model.Limit, model.Sort, model.Order);
 
         return tagsDb?.Select(t => new TagDto
         {

@@ -2,7 +2,7 @@
 
 public static class LimitValueUtils
 {
-    public static int CheckLimitValue(ref int limit, int defaultValue)
+    public static int CheckLimitValue(int limit, int defaultValue)
     {
         if (limit <= 0)
         {

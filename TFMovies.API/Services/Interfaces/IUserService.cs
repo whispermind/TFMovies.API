@@ -18,5 +18,5 @@ public interface IUserService
     public Task<UserActionToken> ValidateResetTokenAsync(string token, bool setUsed);
     public Task ResetPasswordAsync(PasswordResetRequest model);    
     public Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal);
-    public Task<IEnumerable<UserShortDto>> GetAuthorsAsync(int limit, string order);
+    public Task<IEnumerable<UserShortDto>> GetAuthorsAsync(SortFilterRequest model);
 }

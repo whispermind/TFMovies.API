@@ -14,6 +14,6 @@ public interface IPostService
     public Task<PostAddCommentResponse> AddCommentAsync(string id, PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal);
     public Task AddLikeAsync(string id, ClaimsPrincipal currentUserPrincipal);
     public Task RemoveLikeAsync(string id, ClaimsPrincipal currentUserPrincipal);
-    public Task<IEnumerable<TagDto>> GetTagsAsync(int limit, string sort, string order);    
+    public Task<IEnumerable<TagDto>> GetTagsAsync(SortFilterRequest model);    
     public Task<IEnumerable<PostShortInfoDto>> GetUserFavoritePostAsync(ClaimsPrincipal currentUserPrincipal);
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
+using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
 using TFMovies.API.Services.Interfaces;
 
@@ -23,26 +24,21 @@ public class TagsController : ControllerBase
     /// <summary>
     /// Retrieves the list of tags by sort and limit optional.
     /// </summary>   
-    /// <param name="limit">Limit the number of records returned.</param>
-    /// <param name="sort">Specifies the criterion by which tags are sorted. It's an optional parameter with the default value set to "rated".</param>
-    /// <param name="order">Specifies the order by which tags are sorted. It's an optional parameter with the default value set to "desc".</param>
+    /// <param name="model">Contains optional parameters for limit, sort, and order of the returned records. The default values are: sort = "rated", order = "desc", and limit = 1.</param>    
     /// <returns>Returns status 200 along with the list of top tags if the operation is successful.</returns>
     /// <remarks>
     /// Example of a GET request to retrieve top tags:
     ///
     ///     GET /tags?limit=3
     ///     GET /tags?limit=3&amp;sort=rated&amp;order=desc
-    ///  
-    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
+    ///      
     /// </remarks>
     [HttpGet]
-    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<TagDto>))]
-    [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetTagsAsync(int limit, string sort = SortOptions.Rated, string order = "desc")
+    public async Task<IActionResult> GetTagsAsync([FromQuery] SortFilterRequest model)
     {
-        var result = await _postService.GetTagsAsync(limit, sort, order);
+        var result = await _postService.GetTagsAsync(model);
 
         return Ok(result);
     }

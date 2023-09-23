@@ -311,25 +311,21 @@ public class UsersController : ControllerBase
     /// <summary>
     /// Retrieves the list of top authors.
     /// </summary>   
-    /// <param name="limit">Limit the number of records returned.</param>
-    /// <param name="order">Specifies the order by which records are sorted. It's an optional parameter with the default value set to "desc".</param>
+    /// <param name="model">Contains optional parameters for limit, sort, and order of the returned records. The default values are: sort = "rated", order = "desc", and limit = 1.</param>
     /// <returns>Returns status 200 along with the list of top authors if the operation is successful.</returns>
     /// <remarks>
     /// Example of a GET request to retrieve top authors:
     ///
     ///     GET /users/authors?limit=3
     ///     GET /users/authors?limit=3&amp;order=desc
-    /// 
-    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
+    ///     
     /// </remarks>
-    [HttpGet("authors")]
-    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortDto>))]
-    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [HttpGet("authors")]    
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortDto>))]    
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetAuthorsAsync(int limit, string order = "desc")
+    public async Task<IActionResult> GetAuthorsAsync([FromQuery] SortFilterRequest model)
     {
-        var result = await _userService.GetAuthorsAsync(limit, order);
+        var result = await _userService.GetAuthorsAsync(model);
 
         return Ok(result);
     }
@@ -337,7 +333,7 @@ public class UsersController : ControllerBase
     // helper methods
     private string IpAddress()
     {
-        string ipAddressWithPort = null;
+        string? ipAddressWithPort;
 
         if (Request.Headers.ContainsKey("X-Forwarded-For"))
             ipAddressWithPort = Request.Headers["X-Forwarded-For"].FirstOrDefault();
