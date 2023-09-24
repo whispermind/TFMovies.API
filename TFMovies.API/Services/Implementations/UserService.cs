@@ -85,6 +85,7 @@ public class UserService : IUserService
         {
             CurrentUser = new CurrentUser
             {
+                Id = userDb.Id,
                 Nickname = userDb.Nickname,
                 Role = userRole
             },

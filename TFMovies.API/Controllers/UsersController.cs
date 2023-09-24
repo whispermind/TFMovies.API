@@ -317,7 +317,6 @@ public class UsersController : ControllerBase
     /// Example of a GET request to retrieve top authors:
     ///
     ///     GET /users/authors?limit=3
-    ///     GET /users/authors?limit=3&amp;order=desc
     ///     
     /// </remarks>
     [HttpGet("authors")]    

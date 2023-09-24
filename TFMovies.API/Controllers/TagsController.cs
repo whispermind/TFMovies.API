@@ -29,7 +29,6 @@ public class TagsController : ControllerBase
     /// Example of a GET request to retrieve top tags:
     ///
     ///     GET /tags?limit=3
-    ///     GET /tags?limit=3&amp;sort=rated&amp;order=desc
     ///      
     /// </remarks>
     [HttpGet]
