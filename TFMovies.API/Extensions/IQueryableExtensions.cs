@@ -7,51 +7,47 @@ namespace TFMovies.API.Extensions;
 
 public static class IQueryableExtensions
 {
-    public static async Task<PagedResult<T>> GetPagedDataAsync<T>(
-        this IQueryable<T> query,
-        PaginationFilter paginationFilter,
-        Expression<Func<T, object>> sortSelector,
-        string sortOrder)
+    public static async Task<PagedResult<T>> GetPagedDataAsync<T>(this IQueryable<T> query, PaginationSortDto<T> dto)       
     {
-        if (!await query.AnyAsync())
+        var totalRecords = await query.CountAsync();
+
+        if (totalRecords == 0)
         {
             return new PagedResult<T>
             {
-                Page = paginationFilter.Page,
-                Limit = paginationFilter.Limit,
+                Page = dto.Page,
+                Limit = dto.Limit,
                 TotalPages = 0,
                 TotalRecords = 0,
                 Data = new List<T>()
             };
         }
 
-        var totalRecords = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalRecords / (double)dto.Limit);
 
-        var totalPages = (int)Math.Ceiling(totalRecords / (double)paginationFilter.Limit);
-
-        if (paginationFilter.Page > totalPages)
+        if (dto.Page > totalPages)
         {
-            paginationFilter.Page = totalPages;
+            dto.Page = totalPages;
         }
 
-        if (string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase))
+        if (dto.SortSelector != null)
         {
-            query = query.OrderByDescending(sortSelector);
-        }
-        else
-        {
-            query = query.OrderBy(sortSelector);
-        }
+            query = dto.Order switch
+            {
+                "asc" => query.OrderBy(dto.SortSelector),
+                _ => query.OrderByDescending(dto.SortSelector)
+            };
+        }        
 
-        query = query.Skip((paginationFilter.Page - 1) * paginationFilter.Limit)
-                     .Take(paginationFilter.Limit);
+        query = query.Skip((dto.Page - 1) * dto.Limit)
+                     .Take(dto.Limit);
 
         var data = await query.ToListAsync();
 
         return new PagedResult<T>
         {
-            Page = paginationFilter.Page,
-            Limit = paginationFilter.Limit,
+            Page = dto.Page,
+            Limit = dto.Limit,
             TotalPages = totalPages,
             TotalRecords = totalRecords,
             Data = data

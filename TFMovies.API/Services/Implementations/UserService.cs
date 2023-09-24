@@ -183,7 +183,7 @@ public class UserService : IUserService
 
     public async Task SendActivationEmailAsync(EmailActivateRequest model, string callBackUrl)
     {
-        var userDb = await GetUserOrThrowAsync(email: model.Email);
+        var userDb = await GetUserOrThrowAsync(model.Email);
 
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl);
     }
@@ -228,7 +228,7 @@ public class UserService : IUserService
 
         EnsureSuccess(result);
 
-        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject);
+        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject, null);
     }
 
     public async Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal)
@@ -259,7 +259,7 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<IEnumerable<UserShortDto>> GetAuthorsAsync(SortFilterRequest model)
+    public async Task<IEnumerable<UserShortDto>> GetAuthorsAsync(PaginationSortFilterParams model)
     {
         var topUsersByPostLikeCounts = await _postLikeRepository.GetUserIdsByPostLikeCountsAsync(model.Limit, model.Order);
 
@@ -278,7 +278,7 @@ public class UserService : IUserService
     }
 
     //helpers
-    private async Task SendEmailByEmailSubjectAsync(User user, string emailSubject, string? callBackUrl = null)
+    private async Task SendEmailByEmailSubjectAsync(User user, string emailSubject, string? callBackUrl)
     {
         string emailContent;
         string link;
@@ -307,7 +307,7 @@ public class UserService : IUserService
         await _emailService.SendEmailAsync(user.Email, emailSubject, emailContent);
     }
 
-    private async Task<(string Link, string Duration)> GenerateTokenDetailsAsync(User user, ActionTokenTypeEnum tokenType, string callBackUrl)
+    private async Task<(string Link, string Duration)> GenerateTokenDetailsAsync(User user, ActionTokenTypeEnum tokenType, string? callBackUrl)
     {
         var actionToken = await UpsertActionTokenAsync(user.Id, tokenType);
 
@@ -392,7 +392,7 @@ public class UserService : IUserService
         };
     }
 
-    private async Task<User> GetUserOrThrowAsync(string? userId = null, string? email = null, bool throwIfUserExists = false)
+    private async Task<User?> GetUserOrThrowAsync(string? userId = null, string? email = null, bool throwIfUserExists = false)
     {
         User? userDb = null;
 

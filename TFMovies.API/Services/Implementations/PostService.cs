@@ -3,9 +3,7 @@ using System.Net;
 using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Entitiesl;
 using TFMovies.API.Exceptions;
-using TFMovies.API.Filters;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -92,7 +90,7 @@ public class PostService : IPostService
     #region UpdatePost
     public async Task<PostUpdateResponse> UpdateAsync(string id, PostUpdateRequest model)
     {
-        var postDb = await GetPostByIdAsync(id);
+        var postDb = await GetPostByIdOrThrowAsync(id);
 
         var user = await _userRepository.FindByIdAsync(postDb.UserId);
 
@@ -127,39 +125,15 @@ public class PostService : IPostService
     #endregion
 
     #region GetAllPosts
-    public async Task<PostGetAllResponse> GetAllAsync(PostGetAllRequest model, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostsPaginatedResponse> GetAllAsync(PaginationSortFilterParams model, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);        
-        
-        var paging = new PaginationFilter
-        {
-            Limit = model.Limit,
-            Page = model.Page
-        };
+        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);       
 
-        var pagedPosts = await _postRepository.GetAllPagingAsync(paging, model.Sort, model.ThemeId);
+        var pagedPosts = await _postRepository.GetAllPagingAsync(model);
 
-        var data = pagedPosts.Data.Select(p => new PostShortInfoDto
-        {
-            Id = p.Id,
-            CoverImageUrl = p.CoverImageUrl,
-            Title = p.Title,
-            CreatedAt = p.CreatedAt,
-            Author = p.User.Nickname,
-            IsLiked = (currentUser == null || p.PostLikes == null) ? false : p.PostLikes.Any(pl => pl.UserId == currentUser.Id),
-            Tags = GetTagNamesFromPost(p)
-        }).ToList();
+        var response = MapToPostsPaginatedResponse(pagedPosts, currentUser);
 
-        return new PostGetAllResponse
-        {
-            Page = pagedPosts.Page,
-            Limit = pagedPosts.Limit,
-            TotalPages = pagedPosts.TotalPages,
-            TotalRecords = pagedPosts.TotalRecords,
-            ThemeId = model.ThemeId,
-            Sort = model.Sort,
-            Data = data
-        };
+        return response;
     }
     #endregion
 
@@ -178,8 +152,7 @@ public class PostService : IPostService
         }
 
         //Author's other posts
-        //LimitValueUtils.CheckLimitValue(ref limit, LimitValues.AuthorOtherPostsLimit);
-
+        
         var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, currentUser.Id, limit);
         
         var otherPostsDtos = otherPostsByAuthor?.Select(p => new PostByAuthorDto
@@ -212,7 +185,7 @@ public class PostService : IPostService
             AuthorId = post.UserId,
             Author = post.User.Nickname,
             IsLiked = (currentUser == null || post.PostLikes == null) ? false : post.PostLikes.Any(pl => pl.UserId == currentUser.Id),
-            LikesCount = post.PostLikes?.Count ?? 0,
+            LikesCount = post.LikeCount,
             CommentsCount = post.PostComments?.Count ?? 0,
             Tags = GetTagNamesFromPost(post),
             Comments = commentDetails,
@@ -226,7 +199,7 @@ public class PostService : IPostService
     #region AddComment
     public async Task<PostAddCommentResponse> AddCommentAsync(string id, PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal)
     {
-        var postDb = await GetPostByIdAsync(id);
+        var postDb = await GetPostByIdOrThrowAsync(id);
 
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
@@ -259,6 +232,8 @@ public class PostService : IPostService
 
         CheckUserFoundOrThrow(currentUser);
 
+        var post = await GetPostByIdOrThrowAsync(id);
+
         var newPostLike = new PostLike
         {
             PostId = id,
@@ -266,6 +241,10 @@ public class PostService : IPostService
         };
 
         await _postLikeRepository.CreateAsync(newPostLike);
+
+        post.LikeCount += 1;
+
+        await _postRepository.SaveChangesAsync();
     }
     #endregion
 
@@ -276,17 +255,28 @@ public class PostService : IPostService
 
         CheckUserFoundOrThrow(currentUser);
 
+        var post = await GetPostByIdOrThrowAsync(id);
+
         var postLikeDb = await _postLikeRepository.GetPostLikeAsync(id, currentUser.Id);
 
         if (postLikeDb != null)
         {
             await _postLikeRepository.DeleteAsync(postLikeDb);
+
+            post.LikeCount -= 1; 
+
+            if (post.LikeCount < 0)  
+            {
+                post.LikeCount = 0;
+            }
+
+            await _postRepository.SaveChangesAsync();
         }
     }
     #endregion
 
     #region GetTags
-    public async Task<IEnumerable<TagDto>> GetTagsAsync(SortFilterRequest model)
+    public async Task<IEnumerable<TagDto>> GetTagsAsync(PaginationSortFilterParams model)
     {
         var sortOption = (model.Sort ?? string.Empty).ToLower();       
         
@@ -296,36 +286,55 @@ public class PostService : IPostService
         {
             Id = t.Id,
             Name = t.Name
-        }) ?? Enumerable.Empty<TagDto>();      
-    }       
-    #endregion    
+        }) ?? Enumerable.Empty<TagDto>();
+    }
+    #endregion
 
-    #region GetUserFavoritePost
-    public async Task<IEnumerable<PostShortInfoDto>> GetUserFavoritePostAsync(ClaimsPrincipal currentUserPrincipal)
+    #region GetLikedPostsByCurrentUser
+    public async Task<PostsPaginatedResponse> GetUserFavoritePostAsync(PaginationSortFilterParams model, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
         CheckUserFoundOrThrow(currentUser);
 
-        var postsDb = await _postLikeRepository.GetUserFavoritePostsAsync(currentUser.Id);
+        var likedPostIds = await _postLikeRepository.GetLikedPostIdsByUserIdAsync(currentUser.Id);
 
-        var result = postsDb?.Select(p => new PostShortInfoDto
+        var pagedPosts = await _postRepository.GetByIdsPagingAsync(likedPostIds, model);
+
+        var response = MapToPostsPaginatedResponse(pagedPosts, currentUser);
+
+        return response;
+    }
+    #endregion
+
+    #region PrivateMethods   
+
+    private PostsPaginatedResponse MapToPostsPaginatedResponse(PagedResult<Post> pagedPosts, User? currentUser)
+    {
+        var data = pagedPosts.Data.Select(p => new PostShortInfoDto
         {
             Id = p.Id,
             CoverImageUrl = p.CoverImageUrl,
             Title = p.Title,
             CreatedAt = p.CreatedAt,
+            AuthorId = p.User.Id,
             Author = p.User.Nickname,
-            IsLiked = true,
+            IsLiked = (currentUser == null || p.PostLikes == null) ? false : p.PostLikes.Any(pl => pl.UserId == currentUser.Id),
+            LikesCount = p.LikeCount,
             Tags = GetTagNamesFromPost(p)
-        }).ToList() ?? new List<PostShortInfoDto>();    
+        }).ToList();
 
-        return result;
+        return new PostsPaginatedResponse
+        {
+            Page = pagedPosts.Page,
+            Limit = pagedPosts.Limit,
+            TotalPages = pagedPosts.TotalPages,
+            TotalRecords = pagedPosts.TotalRecords,            
+            Data = data
+        };
     }
-    #endregion
 
-    #region PrivateMethods    
-    private static void CheckUserFoundOrThrow(User user)
+    private static void CheckUserFoundOrThrow(User? user)
     {
         if (user == null)
         {
@@ -411,7 +420,7 @@ public class PostService : IPostService
         return theme;
     }
 
-    private async Task<Post> GetPostByIdAsync(string id)
+    private async Task<Post> GetPostByIdOrThrowAsync(string id)
     {
         var post = await _postRepository.GetByIdAsync(id);
 
@@ -431,9 +440,13 @@ public class PostService : IPostService
         return user;
     }
 
-    private static IEnumerable<string> GetTagNamesFromPost(Post post)
+    private static IEnumerable<TagDto> GetTagNamesFromPost(Post post)
     {
-        return post.PostTags.Select(pt => pt.Tag.Name).ToList();
+        return post.PostTags.Select(pt => new TagDto
+                {
+                    Id = pt.Tag.Id,
+                    Name = pt.Tag.Name
+                }).ToList() ?? Enumerable.Empty<TagDto>();
     }
     #endregion
 }

@@ -12,14 +12,13 @@ public class MaxItemCountAttribute : ValidationAttribute
         _maxCount = maxCount;
     }
 
-    protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+    protected override ValidationResult IsValid(object? value, ValidationContext validationContext)
     {
         if (value is ICollection collection && collection.Count > _maxCount)
         {
             var formattedErrorMessage = string.Format(ErrorMessageString, _maxCount);
             return new ValidationResult(formattedErrorMessage);
         }
-
         return ValidationResult.Success;
     }
 }

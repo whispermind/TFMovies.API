@@ -323,7 +323,7 @@ public class UsersController : ControllerBase
     [HttpGet("authors")]    
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortDto>))]    
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetAuthorsAsync([FromQuery] SortFilterRequest model)
+    public async Task<IActionResult> GetAuthorsAsync([FromQuery] PaginationSortFilterParams model)
     {
         var result = await _userService.GetAuthorsAsync(model);
 
@@ -356,11 +356,11 @@ public class UsersController : ControllerBase
     {
         if (Request.Headers.TryGetValue("Origin", out var originValues) && originValues.Count > 0)
         {
-            return originValues[0].ToString();
+            return originValues[0]?.ToString() ?? _webConfig.DefaultSiteUrl ?? "FallbackDefaultValueHere";
         }
         else
         {
-            return _webConfig.DefaultSiteUrl;
+            return _webConfig.DefaultSiteUrl ?? "FallbackDefaultValueHere";
         }
     }
 }

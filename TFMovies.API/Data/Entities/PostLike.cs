@@ -1,8 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using TFMovies.API.Data.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TFMovies.API.Data.Entitiesl;
+namespace TFMovies.API.Data.Entities;
 
+[Index(nameof(PostId), nameof(UserId), IsUnique = true)]
 public class PostLike : BaseModel
 {
     [ForeignKey("Post")]

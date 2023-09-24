@@ -98,10 +98,10 @@ public class PostsController : ControllerBase
     /// </remarks>
     [HttpGet]
     [AllowAnonymous]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostGetAllResponse))]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostsPaginatedResponse))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetAllAsync([FromQuery] PostGetAllRequest model)
+    public async Task<IActionResult> GetAllAsync([FromQuery] PaginationSortFilterParams model)
     {
         var result = await _postService.GetAllAsync(model, User);
 
@@ -214,13 +214,14 @@ public class PostsController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves the liked posts by user.
-    /// </summary>    
+    /// Retrieves the liked posts by the current user.
+    /// </summary>
+    /// <param name="model">An object containing the page and limit of the comment to be added.</param>
     /// <returns>Returns status 200 along with the short information of the posts if the operation is successful.</returns>
     /// <remarks>
     /// Example of a GET request to retrieve a post:
     ///
-    ///     GET /posts/liked-by/me
+    ///     GET /posts/liked-by/me?page=1&amp;limit=10
     ///
     /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
     /// </remarks>
@@ -230,9 +231,9 @@ public class PostsController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetUserFavoritePostAsync()
+    public async Task<IActionResult> GetUserFavoritePostAsync([FromQuery] PaginationSortFilterParams model)
     {
-        var result = await _postService.GetUserFavoritePostAsync(User);
+        var result = await _postService.GetUserFavoritePostAsync(model, User);
 
         return Ok(result);
     }

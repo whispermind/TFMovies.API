@@ -4,7 +4,6 @@ using TFMovies.API.Common.Constants;
 using TFMovies.API.Data;
 using TFMovies.API.Data.Entities;
 using TFMovies.API.Extensions;
-using TFMovies.API.Filters;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Repositories.Interfaces;
 
@@ -41,22 +40,26 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
         return result;
     }
 
-    public async Task<PagedResult<Post>> GetAllPagingAsync(PaginationFilter paging, string? sort, string? themeId)
+    public async Task<PagedResult<Post>> GetAllPagingAsync(PaginationSortFilterParams model)
     {
-        IQueryable<Post> query = Query()
+        IQueryable<Post> query = Query();
+
+        if (!string.IsNullOrEmpty(model.ThemeId))
+        {
+            query = query.Where(p => p.ThemeId == model.ThemeId);
+        }
+
+        query = query.Include(p => p.User)
             .Include(p => p.User)
             .Include(p => p.Theme)
             .Include(p => p.PostTags)
                 .ThenInclude(pt => pt.Tag)
-            .Include(p => p.PostLikes);
+            .Include(p => p.PostLikes)
+            .AsSplitQuery();
 
-        if (!string.IsNullOrEmpty(themeId))
-        {
-            query = query.Where(p => p.ThemeId == themeId);
-        }
 
         Expression<Func<Post, object>> sortSelector;
-        switch (sort)
+        switch (model.Sort)
         {
             case SortOptions.Rated:
                 sortSelector = p => p.PostLikes.Count;
@@ -66,8 +69,36 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
                 break;
         }
 
-        var pagedResult = await query.GetPagedDataAsync(paging, sortSelector, "desc");
+        var pagingSortDto = new PaginationSortDto<Post>
+        {
+            Page = model.Page,
+            Limit = model.Limit,
+            SortSelector = sortSelector
+        };
+
+        var pagedResult = await query.GetPagedDataAsync(pagingSortDto);
 
         return pagedResult;
-    }    
+    }
+
+    public async Task<PagedResult<Post>> GetByIdsPagingAsync(IEnumerable<string> postIds, PaginationSortFilterParams model)
+    {
+        IQueryable<Post> query = _entities
+            .Where(p => postIds.Contains(p.Id))
+            .Include(p => p.User)
+            .Include(p => p.PostTags)
+                .ThenInclude(pt => pt.Tag)
+            .Include(p => p.PostLikes);
+
+        Expression<Func<Post, object>> sortSelector = p => p.LikeCount;
+
+        var pagingSortDto = new PaginationSortDto<Post>
+        {
+            Page = model.Page,
+            Limit = model.Limit,
+            SortSelector = sortSelector
+        };
+
+        return await query.GetPagedDataAsync(pagingSortDto);
+    }
 }
