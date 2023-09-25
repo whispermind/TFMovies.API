@@ -3,11 +3,7 @@ using TFMovies.API.Data;
 using TFMovies.API.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using TFMovies.API.Models.Dto;
-using System.Linq.Expressions;
-using TFMovies.API.Common.Constants;
-using Microsoft.Data.SqlClient;
-using TFMovies.API.Extensions;
-using TFMovies.API.Filters;
+
 
 namespace TFMovies.API.Repositories.Implementations;
 
@@ -33,8 +29,10 @@ public class PostLikeRepository : BaseRepository<PostLike>, IPostLikeRepository
         return result;
     }
 
-    public async Task<IEnumerable<UserPostLikeCountsDto>> GetUserIdsByPostLikeCountsAsync(int limit, string? order)
+    public async Task<IEnumerable<UserPostLikeCountsDto>> GetUserIdsByPostLikeCountsAsync(int? limit, string? order)
     {
+        var actualLimit = limit ?? 10;
+
         IQueryable<UserPostLikeCountsDto> query = _entities
         .Include(pl => pl.Post)
         .Where(pl => pl.Post != null)
@@ -54,7 +52,7 @@ public class PostLikeRepository : BaseRepository<PostLike>, IPostLikeRepository
             query = query.OrderByDescending(g => g.LikeCount);
         }
 
-        var result = await query.Take(limit).ToListAsync();
+        var result = await query.Take(actualLimit).ToListAsync();
 
         return result;       
     }    

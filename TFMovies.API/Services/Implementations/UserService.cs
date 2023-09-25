@@ -260,8 +260,8 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<IEnumerable<UserShortDto>> GetAuthorsAsync(PaginationSortFilterParams model)
-    {
+    public async Task<IEnumerable<UserShortDto>> GetAuthorsAsync(PagingSortFilterParams model)
+    {           
         var topUsersByPostLikeCounts = await _postLikeRepository.GetUserIdsByPostLikeCountsAsync(model.Limit, model.Order);
 
         var userIds = topUsersByPostLikeCounts.Select(a => a.AuthorId).ToList();

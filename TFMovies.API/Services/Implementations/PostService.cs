@@ -41,7 +41,6 @@ public class PostService : IPostService
         _postLikeRepository = postLikeRepository;
     }
 
-    #region CreatePost
     public async Task<PostCreateResponse> CreateAsync(PostCreateRequest model, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
@@ -61,7 +60,6 @@ public class PostService : IPostService
             UpdatedAt = DateTime.UtcNow
         };
 
-
         await _postRepository.CreateAsync(post);
 
         var existingTags = await GetOrCreateTagsAsync(model.Tags);
@@ -80,14 +78,12 @@ public class PostService : IPostService
             CreatedAt = post.CreatedAt,
             Author = currentUser.Nickname,
             Theme = theme.Name,
-            Tags = existingTags?.Select(t => t.Name).ToList() ?? new List<string>()
+            Tags = existingTags?.Select(t => new TagDto { Id = t.Id, Name = t.Name }).ToList() ?? new List<TagDto>()
         };
 
         return response;
     }
-    #endregion
-
-    #region UpdatePost
+    
     public async Task<PostUpdateResponse> UpdateAsync(string id, PostUpdateRequest model)
     {
         var postDb = await GetPostByIdOrThrowAsync(id);
@@ -122,10 +118,8 @@ public class PostService : IPostService
 
         return response;
     }
-    #endregion
 
-    #region GetAllPosts
-    public async Task<PostsPaginatedResponse> GetAllAsync(PaginationSortFilterParams model, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostsPaginatedResponse> GetAllAsync(PagingSortFilterParams model, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);       
 
@@ -135,9 +129,7 @@ public class PostService : IPostService
 
         return response;
     }
-    #endregion
 
-    #region GetPostById
     public async Task<PostGetByIdResponse> GetByIdAsync(string id, ClaimsPrincipal currentUserPrincipal, int limit)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
@@ -160,9 +152,8 @@ public class PostService : IPostService
             Id = p.Id,
             Title = p.Title,
             CreatedAt = p.CreatedAt,
-            Tags = p.PostTags.Select(pt => pt.Tag.Name).ToList()
-        });
-        
+            Tags = p.PostTags.Select(pt => new TagDto { Id = pt.Tag.Id, Name = pt.Tag.Name }).ToList()
+        });        
 
         //comments
         var comments = await _postCommentRepository.GetAllByPostIdAsync(id);
@@ -194,9 +185,7 @@ public class PostService : IPostService
 
         return response;
     }
-    #endregion
 
-    #region AddComment
     public async Task<PostAddCommentResponse> AddCommentAsync(string id, PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal)
     {
         var postDb = await GetPostByIdOrThrowAsync(id);
@@ -223,9 +212,7 @@ public class PostService : IPostService
             Author = newComment.Author
         };
     }
-    #endregion
 
-    #region AddLike
     public async Task AddLikeAsync(string id, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
@@ -246,9 +233,7 @@ public class PostService : IPostService
 
         await _postRepository.SaveChangesAsync();
     }
-    #endregion
 
-    #region RemoveLike
     public async Task RemoveLikeAsync(string id, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
@@ -272,11 +257,9 @@ public class PostService : IPostService
 
             await _postRepository.SaveChangesAsync();
         }
-    }
-    #endregion
-
-    #region GetTags
-    public async Task<IEnumerable<TagDto>> GetTagsAsync(PaginationSortFilterParams model)
+    }  
+   
+    public async Task<IEnumerable<TagDto>> GetTagsAsync(PagingSortFilterParams model)
     {
         var sortOption = (model.Sort ?? string.Empty).ToLower();       
         
@@ -288,10 +271,8 @@ public class PostService : IPostService
             Name = t.Name
         }) ?? Enumerable.Empty<TagDto>();
     }
-    #endregion
 
-    #region GetLikedPostsByCurrentUser
-    public async Task<PostsPaginatedResponse> GetUserFavoritePostAsync(PaginationSortFilterParams model, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostsPaginatedResponse> GetUserFavoritePostAsync(PagingSortFilterParams model, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
@@ -305,10 +286,81 @@ public class PostService : IPostService
 
         return response;
     }
-    #endregion
 
-    #region PrivateMethods   
+    public async Task<PostsPaginatedResponse> SearchWithPagingAsync(PagingSortFilterParams model, string query, ClaimsPrincipal currentUserPrincipal)
+    {
+        var terms = StringParsingHelper.ParseDelimitedValues(query);
 
+        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+
+        CheckUserFoundOrThrow(currentUser);
+
+        var pagedResult = await _postRepository.SearchWihPagingAsync(terms, model);
+
+        var response = MapToPostsPaginatedResponse(pagedResult, currentUser);
+
+        return response;        
+    }
+
+    public async Task<PostsPaginatedResponse> SearchByTagsWithPagingAsync(PagingSortFilterParams model, string query, ClaimsPrincipal currentUserPrincipal)
+    {
+        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+
+        CheckUserFoundOrThrow(currentUser);
+
+        var terms = StringParsingHelper.ParseDelimitedValues(query);
+
+        var matchedIds = await _tagRepository.GetMatchingIdsAsync(terms);        
+
+        if (matchedIds == null || !matchedIds.Any())
+        {
+            return new PostsPaginatedResponse
+            {
+                Page = 0,
+                Limit = 0,
+                TotalPages = 0,
+                TotalRecords = 0,
+                Data = new List<PostShortInfoDto>()
+            };
+        }     
+        
+        var pagedResult = await _postRepository.SearchByTagIdsWihPagingAsync(matchedIds, model);
+
+        var response = MapToPostsPaginatedResponse(pagedResult, currentUser);        
+
+        return response;
+    }
+ 
+    public async Task<PostsPaginatedResponse> SearchByCommentsWithPagingAsync(PagingSortFilterParams model, string query, ClaimsPrincipal currentUserPrincipal)
+    {
+        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+
+        CheckUserFoundOrThrow(currentUser);
+
+        var terms = StringParsingHelper.ParseDelimitedValues(query);
+
+        var matchedIds = await _postCommentRepository.GetMatchingIdsAsync(terms);
+
+        if (matchedIds == null || !matchedIds.Any())
+        {
+            return new PostsPaginatedResponse
+            {
+                Page = 0,
+                Limit = 0,
+                TotalPages = 0,
+                TotalRecords = 0,
+                Data = new List<PostShortInfoDto>()
+            };
+        }
+
+        var pagedResult = await _postRepository.SearchByCommentIdsWihPagingAsync(matchedIds, model);
+
+        var response = MapToPostsPaginatedResponse(pagedResult, currentUser);
+
+        return response;
+    }
+
+    //helpers
     private PostsPaginatedResponse MapToPostsPaginatedResponse(PagedResult<Post> pagedPosts, User? currentUser)
     {
         var data = pagedPosts.Data.Select(p => new PostShortInfoDto
@@ -443,10 +495,9 @@ public class PostService : IPostService
     private static IEnumerable<TagDto> GetTagNamesFromPost(Post post)
     {
         return post.PostTags.Select(pt => new TagDto
-                {
-                    Id = pt.Tag.Id,
-                    Name = pt.Tag.Name
-                }).ToList() ?? Enumerable.Empty<TagDto>();
-    }
-    #endregion
+        {
+            Id = pt.Tag.Id,
+            Name = pt.Tag.Name
+        }).ToList() ?? Enumerable.Empty<TagDto>();
+    }    
 }

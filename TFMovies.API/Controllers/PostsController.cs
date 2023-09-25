@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using TFMovies.API.Common.Constants;
+using TFMovies.API.Data.Entities;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -101,7 +102,7 @@ public class PostsController : ControllerBase
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostsPaginatedResponse))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetAllAsync([FromQuery] PaginationSortFilterParams model)
+    public async Task<IActionResult> GetAllAsync([FromQuery] PagingSortFilterParams model)
     {
         var result = await _postService.GetAllAsync(model, User);
 
@@ -214,16 +215,21 @@ public class PostsController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves the liked posts by the current user.
+    /// Retrieves the posts liked by the authenticated user.
     /// </summary>
-    /// <param name="model">An object containing the page and limit of the comment to be added.</param>
-    /// <returns>Returns status 200 along with the short information of the posts if the operation is successful.</returns>
+    /// <param name="model">A model containing pagination, sorting, and filtering parameters:
+    /// - **Page**: The page number. (Optional)
+    /// - **Limit**: The maximum number of posts to retrieve. (Optional)
+    /// - **Sort**: The field by which to sort the posts. (Optional)
+    /// - **Order**: The order in which to sort the posts (e.g., ascending or descending). (Optional)    
+    /// </param>
+    /// <returns>Returns a status of 200 along with a list of posts' brief details if the operation is successful.</returns>
     /// <remarks>
-    /// Example of a GET request to retrieve a post:
+    /// Sample request:
     ///
     ///     GET /posts/liked-by/me?page=1&amp;limit=10
     ///
-    /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
+    /// **Note**: You must be authenticated and have one of the following roles: Admin, Author, or User to access this endpoint.
     /// </remarks>
     [HttpGet("liked-by/me")]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
@@ -231,9 +237,41 @@ public class PostsController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetUserFavoritePostAsync([FromQuery] PaginationSortFilterParams model)
+    public async Task<IActionResult> GetUserFavoritePostAsync([FromQuery] PagingSortFilterParams model)
     {
         var result = await _postService.GetUserFavoritePostAsync(model, User);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Searches for posts based on the provided query.
+    /// </summary>
+    /// <param name="model">
+    /// A model containing pagination, sorting, and filtering parameters:
+    /// - **Page**: The page number. 
+    /// - **Limit**: The maximum number of posts to retrieve. 
+    /// - **Sort**: The field by which to sort the posts. (Optional)
+    /// - **Order**: The order in which to sort the posts (e.g., asc or desc). (Optional)
+    /// </param>
+    /// <param name="query">The search terms used to filter the posts.</param>
+    /// <returns>Returns a status of 200 along with a list of posts that match the search criteria.</returns>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     GET /posts/search?page=1&amp;limit=10&amp;query=term1,term2,...
+    ///
+    /// **Note**: You must be authenticated and have one of the following roles: Admin, Author, or User to access this endpoint.
+    /// </remarks>
+    [HttpGet("search")]
+    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<PostShortInfoDto>))]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> SearchAsync([FromQuery] PagingSortFilterParams model, [FromQuery] string query)
+    {
+        var result = await _postService.SearchWithPagingAsync(model, query, User);
 
         return Ok(result);
     }

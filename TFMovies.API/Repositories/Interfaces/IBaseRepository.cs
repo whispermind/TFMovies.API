@@ -1,4 +1,7 @@
-﻿namespace TFMovies.API.Repositories.Interfaces;
+﻿using System.Linq.Expressions;
+using TFMovies.API.Models.Dto;
+
+namespace TFMovies.API.Repositories.Interfaces;
 
 public interface IBaseRepository<T>
     where T : class
@@ -14,4 +17,7 @@ public interface IBaseRepository<T>
     public Task DeleteRangeAsync(IEnumerable<T> entities);
     public Task SaveChangesAsync();
     public IQueryable<T> Query();
+    public Task<PagedResult<T>> GetPagedDataAsync(PagingSortFilterDto<T> dto, IQueryable<T>? queryOverride = null);
+    public IQueryable<T> SearchByTerms(IEnumerable<string> terms);
+    public Task<IEnumerable<string>> GetMatchingIdsAsync(IEnumerable<string> terms);
 }

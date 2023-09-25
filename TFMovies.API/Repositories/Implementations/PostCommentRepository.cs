@@ -7,6 +7,7 @@ namespace TFMovies.API.Repositories.Implementations;
 
 public class PostCommentRepository : BaseRepository<PostComment>, IPostCommentRepository
 {
+    protected override IEnumerable<string> SearchColumns => new[] { "Content" };
     public PostCommentRepository(DataContext context) : base(context)
     { }
     public async Task<IEnumerable<PostComment>> GetAllByPostIdAsync(string postId)

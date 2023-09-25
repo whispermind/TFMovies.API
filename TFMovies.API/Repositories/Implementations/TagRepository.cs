@@ -9,6 +9,7 @@ namespace TFMovies.API.Repositories.Implementations;
 
 public class TagRepository : BaseRepository<Tag>, ITagRepository
 {
+    protected override IEnumerable<string> SearchColumns => new[] { "Name" };
     public TagRepository(DataContext context) : base(context)
     { }
 
@@ -24,14 +25,16 @@ public class TagRepository : BaseRepository<Tag>, ITagRepository
     public async Task<IEnumerable<Tag>> FindByNamesAsync(IEnumerable<string> tagNames)
     {
         var result = await _entities
-                    .Where(t => tagNames.Contains(t.Name))
-                    .ToListAsync();
+            .Where(t => tagNames.Contains(t.Name))
+            .ToListAsync();
         
         return result;
     }
 
-    public async Task<IEnumerable<Tag>> GetTagsAsync(int limit, string? sort, string? order)
+    public async Task<IEnumerable<Tag>> GetTagsAsync(int? limit, string? sort, string? order)
     {
+        var actualLimit = limit ?? 10;
+
         IQueryable<Tag> query = _entities; 
 
         Expression<Func<Tag, object>> sortSelector;
@@ -56,9 +59,9 @@ public class TagRepository : BaseRepository<Tag>, ITagRepository
         }
 
         var result = await query
-                     .Take(limit)
-                     .ToListAsync();
+                .Take(actualLimit)
+                .ToListAsync();
 
         return result;
-    }
+    }   
 }
