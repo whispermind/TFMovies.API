@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
+using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
 using TFMovies.API.Services.Interfaces;
 
@@ -34,7 +35,7 @@ public class TagsController : ControllerBase
     [HttpGet]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<TagDto>))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetTagsAsync([FromQuery] PaginationSortFilterParams model)
+    public async Task<IActionResult> GetTagsAsync([FromQuery] PagingSortFilterParams model)
     {
         var result = await _postService.GetTagsAsync(model);
 

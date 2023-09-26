@@ -1,12 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
-using System.Security.Claims;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Extensions;
-using TFMovies.API.Filters;
-using TFMovies.API.Models.Dto;
-using TFMovies.API.Models.Responses;
 using TFMovies.API.Repositories.Interfaces;
 
 namespace TFMovies.API.Repositories.Implementations;

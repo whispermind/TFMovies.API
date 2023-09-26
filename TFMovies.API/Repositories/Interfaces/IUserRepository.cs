@@ -1,8 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using System.Security.Claims;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Filters;
-using TFMovies.API.Models.Dto;
 
 namespace TFMovies.API.Repositories.Interfaces;
 
