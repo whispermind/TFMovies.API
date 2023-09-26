@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using TFMovies.API.Common.Constants;
 
-namespace TFMovies.API.Models.Dto;
+namespace TFMovies.API.Models.Requests;
 
 public class PagingSortFilterParams
 {

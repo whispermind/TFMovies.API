@@ -119,11 +119,41 @@ public class PostService : IPostService
         return response;
     }
 
-    public async Task<PostsPaginatedResponse> GetAllAsync(PagingSortFilterParams model, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostsPaginatedResponse> GetAllAsync(PagingSortFilterParams model, PostsQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);       
+        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
-        var pagedPosts = await _postRepository.GetAllPagingAsync(model);
+        IEnumerable<string> termsQuery = Enumerable.Empty<string>();
+        IEnumerable<string> matchedTagIds = Enumerable.Empty<string>();
+        IEnumerable<string> matchedCommentIds = Enumerable.Empty<string>();
+
+        if (queryModel.Query != null)
+        {
+            termsQuery = StringParsingHelper.ParseDelimitedValues(queryModel.Query);
+        }
+
+        if (queryModel.TagQuery != null)
+        {
+            var terms = StringParsingHelper.ParseDelimitedValues(queryModel.TagQuery);
+
+            matchedTagIds = await _tagRepository.GetMatchingIdsAsync(terms);
+        }
+
+        if (queryModel.CommentQuery != null)
+        {
+            var terms = StringParsingHelper.ParseDelimitedValues(queryModel.CommentQuery);
+
+            matchedCommentIds = await _postCommentRepository.GetMatchingIdsAsync(terms);
+        }
+
+        var queryDto = new PostsQueryDto
+        {
+            Query = termsQuery,
+            MatchingTagIdsQuery = matchedTagIds,
+            MatchingCommentIdsQuery = matchedCommentIds
+        };
+
+        var pagedPosts = await _postRepository.GetAllPagingAsync(model, queryDto);
 
         var response = MapToPostsPaginatedResponse(pagedPosts, currentUser);
 
@@ -285,80 +315,8 @@ public class PostService : IPostService
         var response = MapToPostsPaginatedResponse(pagedPosts, currentUser);
 
         return response;
-    }
-
-    public async Task<PostsPaginatedResponse> SearchWithPagingAsync(PagingSortFilterParams model, string query, ClaimsPrincipal currentUserPrincipal)
-    {
-        var terms = StringParsingHelper.ParseDelimitedValues(query);
-
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
-
-        CheckUserFoundOrThrow(currentUser);
-
-        var pagedResult = await _postRepository.SearchWihPagingAsync(terms, model);
-
-        var response = MapToPostsPaginatedResponse(pagedResult, currentUser);
-
-        return response;        
-    }
-
-    public async Task<PostsPaginatedResponse> SearchByTagsWithPagingAsync(PagingSortFilterParams model, string query, ClaimsPrincipal currentUserPrincipal)
-    {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
-
-        CheckUserFoundOrThrow(currentUser);
-
-        var terms = StringParsingHelper.ParseDelimitedValues(query);
-
-        var matchedIds = await _tagRepository.GetMatchingIdsAsync(terms);        
-
-        if (matchedIds == null || !matchedIds.Any())
-        {
-            return new PostsPaginatedResponse
-            {
-                Page = 0,
-                Limit = 0,
-                TotalPages = 0,
-                TotalRecords = 0,
-                Data = new List<PostShortInfoDto>()
-            };
-        }     
-        
-        var pagedResult = await _postRepository.SearchByTagIdsWihPagingAsync(matchedIds, model);
-
-        var response = MapToPostsPaginatedResponse(pagedResult, currentUser);        
-
-        return response;
-    }
- 
-    public async Task<PostsPaginatedResponse> SearchByCommentsWithPagingAsync(PagingSortFilterParams model, string query, ClaimsPrincipal currentUserPrincipal)
-    {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
-
-        CheckUserFoundOrThrow(currentUser);
-
-        var terms = StringParsingHelper.ParseDelimitedValues(query);
-
-        var matchedIds = await _postCommentRepository.GetMatchingIdsAsync(terms);
-
-        if (matchedIds == null || !matchedIds.Any())
-        {
-            return new PostsPaginatedResponse
-            {
-                Page = 0,
-                Limit = 0,
-                TotalPages = 0,
-                TotalRecords = 0,
-                Data = new List<PostShortInfoDto>()
-            };
-        }
-
-        var pagedResult = await _postRepository.SearchByCommentIdsWihPagingAsync(matchedIds, model);
-
-        var response = MapToPostsPaginatedResponse(pagedResult, currentUser);
-
-        return response;
-    }
+    }   
+    
 
     //helpers
     private PostsPaginatedResponse MapToPostsPaginatedResponse(PagedResult<Post> pagedPosts, User? currentUser)

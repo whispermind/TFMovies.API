@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using TFMovies.API.Models.Dto;
+using TFMovies.API.Models.Requests;
 
 namespace TFMovies.API.Extensions;
 
