@@ -349,17 +349,17 @@ public class UsersController : ControllerBase
     }
 
     private string GenerateVerifyEmailUrl() => $"{ExtractOriginOrDefault()}/signup";
-    private string GenerateValidateResetTokenUrl() => $"{ExtractOriginOrDefault()}/passrecovery";
+    private string GenerateValidateResetTokenUrl() => $"{ExtractOriginOrDefault()}/auth/passrecovery";
 
     private string ExtractOriginOrDefault()
     {
         if (Request.Headers.TryGetValue("Origin", out var originValues) && originValues.Count > 0)
         {
-            return originValues[0]?.ToString() ?? _webConfig.DefaultSiteUrl ?? "FallbackDefaultValueHere";
+            return originValues[0]?.ToString() ?? _webConfig.DefaultSiteUrl ?? "FallbackDefaultValue";
         }
         else
         {
-            return _webConfig.DefaultSiteUrl ?? "FallbackDefaultValueHere";
+            return _webConfig.DefaultSiteUrl ?? "FallbackDefaultValue";
         }
     }
 }

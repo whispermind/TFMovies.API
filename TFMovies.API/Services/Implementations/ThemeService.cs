@@ -2,8 +2,8 @@
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data.Entities;
 using TFMovies.API.Exceptions;
+using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
-using TFMovies.API.Models.Responses;
 using TFMovies.API.Repositories.Interfaces;
 using TFMovies.API.Services.Interfaces;
 
@@ -30,12 +30,12 @@ public class ThemeService : IThemeService
         await _themeRepository.DeleteByIdAsync(id);
     }
 
-    public async Task<IEnumerable<ThemeResponse>> GetAllAsync()
+    public async Task<IEnumerable<ThemeDto>> GetAllAsync()
     {
         var themesDb = await _themeRepository.GetAllAsync();
 
         var themesResponse = themesDb.Select(theme =>
-            new ThemeResponse
+            new ThemeDto
             {
                 Id = theme.Id,
                 Name = theme.Name
@@ -57,7 +57,7 @@ public class ThemeService : IThemeService
         await _themeRepository.UpdateAsync(updatedThemeDb);
     }
 
-    public async Task<ThemeResponse> GetByNameAsync(string name)
+    public async Task<ThemeDto> GetByNameAsync(string name)
     {
         var themeDb = await _themeRepository.FindByNameAsync(name);
 
@@ -66,7 +66,7 @@ public class ThemeService : IThemeService
             throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.ThemeNotFound, name));
         }
 
-        return new ThemeResponse
+        return new ThemeDto
         {
             Id = themeDb.Id,
             Name = themeDb.Name

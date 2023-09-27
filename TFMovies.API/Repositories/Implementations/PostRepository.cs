@@ -35,11 +35,20 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
 
     public async Task<IEnumerable<Post>> GetOthersAsync(string excludeId, string authorId, int limit)
     {
-        return await _entities
-            .Where(p => p.UserId == authorId && p.Id != excludeId)
-            .OrderByDescending(p => p.CreatedAt)
-            .Take(limit)
-            .ToListAsync();
+        IQueryable<Post> query = Query()
+            .Where(p => p.UserId == authorId && p.Id != excludeId);
+
+        query = query
+            .Include(p => p.PostTags)
+                .ThenInclude(pt => pt.Tag)
+            .OrderByDescending(p => p.CreatedAt);
+
+        if (limit > 0)
+        {
+            query = query.Take(limit);
+        }
+        
+        return await query.ToListAsync();
     }
 
     public async Task<PagedResult<Post>> GetAllPagingAsync(PagingSortFilterParams model, PostsQueryDto dto)

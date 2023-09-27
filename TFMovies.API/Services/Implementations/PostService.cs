@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using Microsoft.IdentityModel.Tokens;
+using System.Data;
 using System.Net;
 using System.Security.Claims;
 using TFMovies.API.Common.Constants;
@@ -83,7 +84,7 @@ public class PostService : IPostService
 
         return response;
     }
-    
+
     public async Task<PostUpdateResponse> UpdateAsync(string id, PostUpdateRequest model)
     {
         var postDb = await GetPostByIdOrThrowAsync(id);
@@ -123,28 +124,20 @@ public class PostService : IPostService
     {
         var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
 
-        IEnumerable<string> termsQuery = Enumerable.Empty<string>();
-        IEnumerable<string> matchedTagIds = Enumerable.Empty<string>();
-        IEnumerable<string> matchedCommentIds = Enumerable.Empty<string>();
-
-        if (queryModel.Query != null)
+        //search is available just for authorized users
+        if (currentUser == null &&
+            (!string.IsNullOrEmpty(queryModel.Query) ||
+             !string.IsNullOrEmpty(queryModel.TagQuery) ||
+             !string.IsNullOrEmpty(queryModel.CommentQuery)))
         {
-            termsQuery = StringParsingHelper.ParseDelimitedValues(queryModel.Query);
+            throw new UnauthorizedAccessException();
         }
 
-        if (queryModel.TagQuery != null)
-        {
-            var terms = StringParsingHelper.ParseDelimitedValues(queryModel.TagQuery);
+        var termsQuery = await ExtractTerms(queryModel.Query);
 
-            matchedTagIds = await _tagRepository.GetMatchingIdsAsync(terms);
-        }
+        var matchedTagIds = await ExtractTerms(queryModel.TagQuery, _tagRepository.GetMatchingIdsAsync);
 
-        if (queryModel.CommentQuery != null)
-        {
-            var terms = StringParsingHelper.ParseDelimitedValues(queryModel.CommentQuery);
-
-            matchedCommentIds = await _postCommentRepository.GetMatchingIdsAsync(terms);
-        }
+        var matchedCommentIds = await ExtractTerms(queryModel.CommentQuery, _postCommentRepository.GetMatchingIdsAsync);
 
         var queryDto = new PostsQueryDto
         {
@@ -166,7 +159,7 @@ public class PostService : IPostService
 
         CheckUserFoundOrThrow(currentUser);
 
-        var post = await _postRepository.GetFullByIdAsync(id);        
+        var post = await _postRepository.GetFullByIdAsync(id);
 
         if (post == null)
         {
@@ -174,16 +167,16 @@ public class PostService : IPostService
         }
 
         //Author's other posts
-        
+
         var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, currentUser.Id, limit);
-        
+
         var otherPostsDtos = otherPostsByAuthor?.Select(p => new PostByAuthorDto
         {
             Id = p.Id,
             Title = p.Title,
             CreatedAt = p.CreatedAt,
             Tags = p.PostTags.Select(pt => new TagDto { Id = pt.Tag.Id, Name = pt.Tag.Name }).ToList()
-        });        
+        });
 
         //comments
         var comments = await _postCommentRepository.GetAllByPostIdAsync(id);
@@ -195,12 +188,13 @@ public class PostService : IPostService
             CreatedAt = pc.CreatedAt
         }).ToList();
 
+        var themeDto = new ThemeDto { Id = post.ThemeId, Name = post.Theme.Name };
+
         var response = new PostGetByIdResponse
         {
             Id = post.Id,
             CoverImageUrl = post.CoverImageUrl,
             Title = post.Title,
-            Theme = post.Theme.Name,
             HtmlContent = post.HtmlContent,
             CreatedAt = post.CreatedAt,
             AuthorId = post.UserId,
@@ -208,6 +202,7 @@ public class PostService : IPostService
             IsLiked = (currentUser == null || post.PostLikes == null) ? false : post.PostLikes.Any(pl => pl.UserId == currentUser.Id),
             LikesCount = post.LikeCount,
             CommentsCount = post.PostComments?.Count ?? 0,
+            Theme = themeDto,
             Tags = GetTagNamesFromPost(post),
             Comments = commentDetails,
             PostsByAuthor = otherPostsDtos
@@ -278,21 +273,21 @@ public class PostService : IPostService
         {
             await _postLikeRepository.DeleteAsync(postLikeDb);
 
-            post.LikeCount -= 1; 
+            post.LikeCount -= 1;
 
-            if (post.LikeCount < 0)  
+            if (post.LikeCount < 0)
             {
                 post.LikeCount = 0;
             }
 
             await _postRepository.SaveChangesAsync();
         }
-    }  
-   
+    }
+
     public async Task<IEnumerable<TagDto>> GetTagsAsync(PagingSortFilterParams model)
     {
-        var sortOption = (model.Sort ?? string.Empty).ToLower();       
-        
+        var sortOption = (model.Sort ?? string.Empty).ToLower();
+
         var tagsDb = await _tagRepository.GetTagsAsync(model.Limit, model.Sort, model.Order);
 
         return tagsDb?.Select(t => new TagDto
@@ -315,10 +310,19 @@ public class PostService : IPostService
         var response = MapToPostsPaginatedResponse(pagedPosts, currentUser);
 
         return response;
-    }   
-    
+    }
+
 
     //helpers
+    private async Task<IEnumerable<string>> ExtractTerms(string? input, Func<IEnumerable<string>, Task<IEnumerable<string>>>? repositoryFunc = null)
+    {
+        if (string.IsNullOrEmpty(input)) return Enumerable.Empty<string>();
+
+        var terms = StringParsingHelper.ParseDelimitedValues(input);
+
+        return repositoryFunc != null ? await repositoryFunc(terms) : terms;
+    }
+
     private PostsPaginatedResponse MapToPostsPaginatedResponse(PagedResult<Post> pagedPosts, User? currentUser)
     {
         var data = pagedPosts.Data.Select(p => new PostShortInfoDto
@@ -339,7 +343,7 @@ public class PostService : IPostService
             Page = pagedPosts.Page,
             Limit = pagedPosts.Limit,
             TotalPages = pagedPosts.TotalPages,
-            TotalRecords = pagedPosts.TotalRecords,            
+            TotalRecords = pagedPosts.TotalRecords,
             Data = data
         };
     }
@@ -350,7 +354,7 @@ public class PostService : IPostService
         {
             throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
         }
-    }    
+    }
     private async Task<List<Tag>> GetOrCreateTagsAsync(List<string> tagNames)
     {
         CleanAndDistinctTags(tagNames);
@@ -421,7 +425,7 @@ public class PostService : IPostService
     private async Task<Theme> GetThemeByIdAsync(string themeId)
     {
         var theme = await _themeRepository.GetByIdAsync(themeId);
-        
+
         if (theme == null)
         {
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.ThemeNotFound);
@@ -457,5 +461,9 @@ public class PostService : IPostService
             Id = pt.Tag.Id,
             Name = pt.Tag.Name
         }).ToList() ?? Enumerable.Empty<TagDto>();
-    }    
+    }
+    private async Task<bool> IsUserInRoleAsync(User user, string role)
+    {
+        return await _userRepository.IsInRoleAsync(user, role);
+    }
 }

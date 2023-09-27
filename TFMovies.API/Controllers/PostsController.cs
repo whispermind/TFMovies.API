@@ -112,12 +112,13 @@ public class PostsController : ControllerBase
     ///     GET /posts?page=1&amp;limit=10&amp;tagQuery=tag1,tag2
     ///     GET /posts?page=1&amp;limit=10&amp;commentQuery=commentText
     ///
-    /// **Note**: This endpoint can be accessed by any user, even if they are not authenticated.
+    /// **Note**: This endpoint can be accessed by any user. However, the search functionality is available only for authorized users. 
     /// </remarks>   
     [HttpGet]
     [AllowAnonymous]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostsPaginatedResponse))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     public async Task<IActionResult> GetAllAsync([FromQuery] PagingSortFilterParams model, [FromQuery] PostsQueryParams queryModel)
     {
@@ -130,7 +131,7 @@ public class PostsController : ControllerBase
     /// Retrieves the details of a specific post by its ID.
     /// </summary>
     /// <param name="id">The unique identifier of the post.</param>
-    /// <param name="limit">Limit the number of records returned.</param>
+    /// <param name="limit">Restrict the number of Author's other posts returned</param>
     /// <returns>Returns status 200 along with the detailed information of the post if the operation is successful.</returns>
     /// <remarks>
     /// Example of a GET request to retrieve a post:
