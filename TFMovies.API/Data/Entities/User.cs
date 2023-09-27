@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using TFMovies.API.Data.Entitiesl;
 
 namespace TFMovies.API.Data.Entities;
 

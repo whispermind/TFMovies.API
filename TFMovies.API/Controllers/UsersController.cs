@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using EllipticCurve.Utils;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
+using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -306,10 +308,31 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Retrieves the list of top authors.
+    /// </summary>   
+    /// <param name="model">Contains optional parameters for limit, sort, and order of the returned records. The default values are: sort = "rated", order = "desc", and limit = 1.</param>
+    /// <returns>Returns status 200 along with the list of top authors if the operation is successful.</returns>
+    /// <remarks>
+    /// Example of a GET request to retrieve top authors:
+    ///
+    ///     GET /users/authors?limit=3
+    ///     
+    /// </remarks>
+    [HttpGet("authors")]    
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortDto>))]    
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> GetAuthorsAsync([FromQuery] PagingSortFilterParams model)
+    {
+        var result = await _userService.GetAuthorsAsync(model);
+
+        return Ok(result);
+    }
+
     // helper methods
     private string IpAddress()
     {
-        string ipAddressWithPort = null;
+        string? ipAddressWithPort;
 
         if (Request.Headers.ContainsKey("X-Forwarded-For"))
             ipAddressWithPort = Request.Headers["X-Forwarded-For"].FirstOrDefault();
@@ -326,17 +349,17 @@ public class UsersController : ControllerBase
     }
 
     private string GenerateVerifyEmailUrl() => $"{ExtractOriginOrDefault()}/signup";
-    private string GenerateValidateResetTokenUrl() => $"{ExtractOriginOrDefault()}/passrecovery";
+    private string GenerateValidateResetTokenUrl() => $"{ExtractOriginOrDefault()}/auth/passrecovery";
 
     private string ExtractOriginOrDefault()
     {
         if (Request.Headers.TryGetValue("Origin", out var originValues) && originValues.Count > 0)
         {
-            return originValues[0].ToString();
+            return originValues[0]?.ToString() ?? _webConfig.DefaultSiteUrl ?? "FallbackDefaultValue";
         }
         else
         {
-            return _webConfig.DefaultSiteUrl;
+            return _webConfig.DefaultSiteUrl ?? "FallbackDefaultValue";
         }
     }
 }

@@ -6,8 +6,7 @@ public class PostGetByIdResponse
 {
     public string Id { get; set; }
     public string CoverImageUrl { get; set; }
-    public string Title { get; set; }
-    public string Theme { get; set; }
+    public string Title { get; set; }   
     public string HtmlContent { get; set; }
     public DateTime CreatedAt { get; set; }
     public string AuthorId { get; set; }
@@ -16,7 +15,8 @@ public class PostGetByIdResponse
     public int LikesCount { get; set; }
     public int CommentsCount { get; set; }
 
-    public IEnumerable<string>? Tags { get; set; }
+    public ThemeDto Theme { get; set; }
+    public IEnumerable<TagDto>? Tags { get; set; }
     public IEnumerable<CommentDetailDto>? Comments { get; set; }
     public IEnumerable<PostByAuthorDto>? PostsByAuthor { get; set; }
 }

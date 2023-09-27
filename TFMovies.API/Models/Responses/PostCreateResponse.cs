@@ -1,4 +1,6 @@
-﻿namespace TFMovies.API.Models.Responses;
+﻿using TFMovies.API.Models.Dto;
+
+namespace TFMovies.API.Models.Responses;
 
 public class PostCreateResponse
 {
@@ -10,5 +12,5 @@ public class PostCreateResponse
     public string Author { get; set; }
     public string Theme { get; set; }
 
-    public IEnumerable<string> Tags { get; set; }
+    public IEnumerable<TagDto> Tags { get; set; }
 }

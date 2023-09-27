@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using TFMovies.API.Data.Entities;
+using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
 
@@ -17,4 +18,5 @@ public interface IUserService
     public Task<UserActionToken> ValidateResetTokenAsync(string token, bool setUsed);
     public Task ResetPasswordAsync(PasswordResetRequest model);    
     public Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal);
+    public Task<IEnumerable<UserShortDto>> GetAuthorsAsync(PagingSortFilterParams model);
 }

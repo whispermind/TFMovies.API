@@ -1,16 +1,22 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Net;
+using TFMovies.API.Common.Constants;
 using TFMovies.API.Data;
+using TFMovies.API.Data.Entities;
+using TFMovies.API.Exceptions;
+using TFMovies.API.Extensions;
+using TFMovies.API.Models.Dto;
 using TFMovies.API.Repositories.Interfaces;
 
 namespace TFMovies.API.Repositories.Implementations;
 
 public abstract class BaseRepository<T> : IBaseRepository<T>
-    where T : class
+    where T : BaseModel
 {
     protected readonly DbContext _context;
     protected DbSet<T> _entities;
-
-    public BaseRepository(DataContext context)
+    protected virtual IEnumerable<string>? SearchColumns { get; }
+    protected BaseRepository(DataContext context)
     {
         _context = context;
         _entities = _context.Set<T>();
@@ -76,7 +82,6 @@ public abstract class BaseRepository<T> : IBaseRepository<T>
             _entities.RemoveRange(entities);
             await SaveChangesAsync();
         }
-
     }
     public async Task SaveChangesAsync()
     {
@@ -86,5 +91,32 @@ public abstract class BaseRepository<T> : IBaseRepository<T>
     public IQueryable<T> Query()
     {
         return _entities.AsNoTracking();
+    }
+
+    public async Task<PagedResult<T>> GetPagedDataAsync(PagingSortFilterDto<T> dto, IQueryable<T>? queryOverride = null)
+    {
+        var query = queryOverride ?? _entities;
+
+        return await query.GetPagedDataAsync(dto);
+    }
+
+    public IQueryable<T> SearchByTerms(IEnumerable<string> terms)
+    {
+        if (SearchColumns == null || !SearchColumns.Any())
+        {
+            throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.SearchColumnsNotDefined);
+        }
+
+        return _entities
+            .SearchByTerms(SearchColumns, terms);
+    }
+
+    public async Task<IEnumerable<string>> GetMatchingIdsAsync(IEnumerable<string> terms)
+    {
+        var query = SearchByTerms(terms);
+
+        return await query
+            .Select(t => t.Id)
+            .ToListAsync();
     }
 }

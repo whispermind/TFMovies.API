@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TFMovies.API.Data.Entities;
 
-[PrimaryKey(nameof(PostId), nameof(TagId))]
-public class PostTag
+[Index(nameof(PostId), nameof(TagId), IsUnique = true)]
+public class PostTag : BaseModel
 {
     [ForeignKey("Post")]
     public string PostId { get; set; }

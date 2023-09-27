@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection.Emit;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Data.Entitiesl;
 
 namespace TFMovies.API.Data;
 

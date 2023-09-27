@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using TFMovies.API.Data.Entities;
-using TFMovies.API.Models.Responses;
 using TFMovies.API.Repositories.Interfaces;
 
 namespace TFMovies.API.Repositories.Implementations;
@@ -19,7 +18,7 @@ public class UserRepository : IUserRepository
     {
         return await _userManager.CreateAsync(user, password);
     }
-
+    
     public async Task<User> FindByIdAsync(string userId)
     {
         return await _userManager.FindByIdAsync(userId);
@@ -39,6 +38,30 @@ public class UserRepository : IUserRepository
     {
         return await _userManager.DeleteAsync(user);
     }
+
+    public async Task<IEnumerable<User>> GetUsersByIdsAsync(IEnumerable<string> userIds)
+    {
+        var users = new List<User>();
+
+        foreach (var userId in userIds)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            
+            if (user != null)
+            {
+                users.Add(user);
+            }
+        }
+        return users;
+    }
+
+    public async Task<IEnumerable<User>> GetAllAsync()
+    {
+        var users = await _userManager.Users.ToListAsync();
+
+        return users;
+    }
+
 
     //Manage Password
     public async Task<bool> CheckPasswordAsync(User user, string password)
@@ -67,5 +90,10 @@ public class UserRepository : IUserRepository
     public async Task<IdentityResult> RemoveFromRolesAsync(User user, IEnumerable<string> roles)
     {
         return await _userManager.RemoveFromRolesAsync(user, roles);
+    }
+
+    public async Task<bool> IsInRoleAsync(User user, string role)
+    {
+        return await _userManager.IsInRoleAsync(user, role);
     }
 }

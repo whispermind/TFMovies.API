@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using TFMovies.API.Common.Constants;
+using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
 using TFMovies.API.Services.Interfaces;
@@ -61,7 +62,7 @@ public class ThemesController : ControllerBase
     [HttpGet]
     [AllowAnonymous]
     [SwaggerOperation(Tags = new[] { "Helpers" })]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<ThemeResponse>))]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<ThemeDto>))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
