@@ -93,7 +93,7 @@ public abstract class BaseRepository<T> : IBaseRepository<T>
         return _entities.AsNoTracking();
     }
 
-    public async Task<PagedResult<T>> GetPagedDataAsync(PagingSortFilterDto<T> dto, IQueryable<T>? queryOverride = null)
+    public async Task<PagedResult<T>> GetPagedDataAsync(PagingSortDto<T> dto, IQueryable<T>? queryOverride = null)
     {
         var query = queryOverride ?? _entities;
 

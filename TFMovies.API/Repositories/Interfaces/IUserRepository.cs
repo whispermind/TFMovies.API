@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using TFMovies.API.Data.Entities;
+using TFMovies.API.Models.Dto;
+using TFMovies.API.Models.Requests;
 
 namespace TFMovies.API.Repositories.Interfaces;
 
@@ -13,6 +15,7 @@ public interface IUserRepository
     public Task<IdentityResult> DeleteAsync(User user);
     public Task<IEnumerable<User>> GetUsersByIdsAsync(IEnumerable<string> userIds);
     public Task<IEnumerable<User>> GetAllAsync();
+    public Task<PagedResult<UserRoleDto>> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryDto queryDto);
 
     //Manage Password
     public Task<bool> CheckPasswordAsync(User user, string password);

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Security.Claims;
@@ -234,9 +235,7 @@ public class UserService : IUserService
 
     public async Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal)
     {
-        var userId = currentUserPrincipal.FindFirstValue("sub");
-
-        var currentUser = await _userRepository.FindByIdAsync(userId);
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
         if (currentUser == null)
         {
@@ -260,7 +259,7 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<IEnumerable<UserShortDto>> GetAuthorsAsync(PagingSortFilterParams model)
+    public async Task<IEnumerable<UserShortInfoDto>> GetAuthorsAsync(PagingSortParams model)
     {           
         var topUsersByPostLikeCounts = await _postLikeRepository.GetUserIdsByPostLikeCountsAsync(model.Limit, model.Order);
 
@@ -268,17 +267,67 @@ public class UserService : IUserService
 
         var users = await _userRepository.GetUsersByIdsAsync(userIds);
         
-        var result = users?.Select(a => new UserShortDto
+        var result = users?.Select(a => new UserShortInfoDto
         {
             Id = a.Id,
             Nickname = a.Nickname,
             Email = a.Email
-        }) ?? Enumerable.Empty<UserShortDto>();
+        }) ?? Enumerable.Empty<UserShortInfoDto>();
 
         return result;
     }
 
+    public async Task<UsersPaginatedResponse> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
+    {
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
+
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
+
+        var termsQuery = Enumerable.Empty<string>();
+
+        if (!string.IsNullOrEmpty(queryModel.Query))
+        {
+            termsQuery = StringParsingHelper.ParseDelimitedValues(queryModel.Query);
+        }
+
+        var queryDto = new UsersQueryDto
+        {
+            Query = termsQuery
+        };
+
+        if (string.IsNullOrEmpty(pagingSortModel.Order))
+        {
+            pagingSortModel.Order = OrderOptions.Asc;
+        }
+
+        var pagedUsers = await _userRepository.GetAllPagingAsync(pagingSortModel, filterModel, queryDto);
+
+        var response = MapToUsersPaginatedResponse(pagedUsers);
+
+        return response;
+    }
+
     //helpers
+    private UsersPaginatedResponse MapToUsersPaginatedResponse(PagedResult<UserRoleDto> pagedUsers)
+    {
+        var data = pagedUsers.Data.Select(ur => new UserShortInfoDto
+        {
+            Id = ur.User.Id,
+            Nickname = ur.User.Nickname,
+            Email = ur.User.Email,
+            Role = ur.Role
+
+        }).ToList();
+
+        return new UsersPaginatedResponse
+        {
+            Page = pagedUsers.Page,
+            Limit = pagedUsers.Limit,
+            TotalPages = pagedUsers.TotalPages,
+            TotalRecords = pagedUsers.TotalRecords,
+            Data = data
+        };
+    }
     private async Task SendEmailByEmailSubjectAsync(User user, string emailSubject, string? callBackUrl)
     {
         string emailContent;
