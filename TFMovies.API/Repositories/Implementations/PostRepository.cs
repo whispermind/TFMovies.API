@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using System.Linq.Expressions;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data;
@@ -51,26 +50,22 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
         return await query.ToListAsync();
     }
 
-    public async Task<PagedResult<Post>> GetAllPagingAsync(PagingSortFilterParams model, PostsQueryDto dto)
+    public async Task<PagedResult<Post>> GetAllPagingAsync(PagingSortParams pagingSortModel, PostsFilterParams filterModel, PostsQueryDto dto)
     {
         var query = Query();       
 
         // Filter by Theme
-        if (!string.IsNullOrEmpty(model.ThemeId))
+        if (!string.IsNullOrEmpty(filterModel.ThemeId))
         {
-            Expression<Func<Post, bool>>? filterPredicate;
+            query = query.Where(p => p.ThemeId == filterModel.ThemeId);
 
-            filterPredicate = p => p.ThemeId == model.ThemeId;
-
-            return await FetchPagedResultsAsync(query, model, filterPredicate: filterPredicate);
+            return await FetchPagedResultsAsync(query, pagingSortModel);
         }
 
         // Search
         if (dto.Query != null && dto.Query.Any())
         {
-            var columns = new List<string> { "Title", "HtmlContent" };
-
-            query = query.SearchByTerms(columns, dto.Query);
+            query = query.SearchByTerms(SearchColumns, dto.Query);
         }
 
         if (dto.MatchingTagIdsQuery != null && dto.MatchingTagIdsQuery.Any())
@@ -83,10 +78,10 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
             query = query.Where(p => p.PostComments.Any(pc => dto.MatchingCommentIdsQuery.Contains(pc.Id)));
         }
 
-        return await FetchPagedResultsAsync(query, model);
+        return await FetchPagedResultsAsync(query, pagingSortModel);
     }
 
-    public async Task<PagedResult<Post>> GetByIdsPagingAsync(IEnumerable<string> postIds, PagingSortFilterParams model)
+    public async Task<PagedResult<Post>> GetByIdsPagingAsync(IEnumerable<string> postIds, PagingSortParams model)
     {
         var query = _entities
             .Where(p => postIds.Contains(p.Id));
@@ -97,17 +92,16 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
     //helpers
     private async Task<PagedResult<Post>> FetchPagedResultsAsync(
         IQueryable<Post> query,
-        PagingSortFilterParams model,
-        Expression<Func<Post, object>>? defaultSortSelector = null,
-        Expression<Func<Post, bool>>? filterPredicate = null)
+        PagingSortParams pagingSortModel,
+        Expression<Func<Post, object>>? defaultSortSelector = null)
     {
         query = IncludeCommonPostEntities(query);
 
-        var sortSelector = defaultSortSelector ?? GetSortSelector(model);
+        var sortSelector = defaultSortSelector ?? GetSortSelector(pagingSortModel);
 
-        var pagingSortFilterDto = model.ToPagingDto(sortSelector, filterPredicate);
+        var pagingSortDto = pagingSortModel.ToPagingDto(sortSelector);
 
-        return await query.GetPagedDataAsync(pagingSortFilterDto);
+        return await query.GetPagedDataAsync(pagingSortDto);
     }
 
     private IQueryable<Post> IncludeCommonPostEntities(IQueryable<Post> query)
@@ -121,7 +115,7 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
             .AsNoTracking();
     }
 
-    private Expression<Func<Post, object>> GetSortSelector(PagingSortFilterParams model)
+    private Expression<Func<Post, object>> GetSortSelector(PagingSortParams model)
     {
         return model.Sort switch
         {

@@ -6,5 +6,9 @@ public class SortOptions
     
     public const string Created = "created";
 
-    public const string Alphabetical = "alphabetical";
+    public const string Email = "email";
+
+    public const string Nickname = "nickname";
+
+    public const string RoleName = "role";
 }

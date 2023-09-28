@@ -89,12 +89,15 @@ public class PostsController : ControllerBase
     /// <summary>
     /// Retrieves a paginated list of posts based on the provided search and filter criteria.
     /// </summary>
-    /// <param name="model">
+    /// <param name="pagingSortModel">
     /// A model containing pagination, sorting, and filtering parameters:
     /// - **Page**: The page number. (Optional; default is 1)
     /// - **Limit**: The maximum number of posts to retrieve. (Optional; default is 10)
     /// - **Sort**: The field by which to sort the posts (e.g., "rated" or "created"). (Optional)
-    /// - **Order**: The order in which to sort the posts (e.g., "asc" or "desc"). (Optional)
+    /// - **Order**: The order in which to sort the posts (e.g., "asc" or "desc"). (Optional)    
+    /// </param>
+    /// <param name="filterModel">
+    /// The search and filter criteria:
     /// - **ThemeId**: A specific theme ID to sort the posts by. (Optional)
     /// </param>
     /// <param name="queryModel">
@@ -120,9 +123,12 @@ public class PostsController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetAllAsync([FromQuery] PagingSortFilterParams model, [FromQuery] PostsQueryParams queryModel)
+    public async Task<IActionResult> GetAllAsync(
+        [FromQuery] PagingSortParams pagingSortModel,
+        [FromQuery] PostsFilterParams filterModel,
+        [FromQuery] PostsQueryParams queryModel)
     {
-        var result = await _postService.GetAllAsync(model, queryModel, User);
+        var result = await _postService.GetAllAsync(pagingSortModel, filterModel, queryModel, User);
 
         return Ok(result);
     }
@@ -255,7 +261,7 @@ public class PostsController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetUserFavoritePostAsync([FromQuery] PagingSortFilterParams model)
+    public async Task<IActionResult> GetUserFavoritePostAsync([FromQuery] PagingSortParams model)
     {
         var result = await _postService.GetUserFavoritePostAsync(model, User);
 

@@ -3,7 +3,7 @@ using TFMovies.API.Common.Constants;
 
 namespace TFMovies.API.Models.Requests;
 
-public class PagingSortFilterParams
+public class PagingSortParams
 {
     [Range(1, LimitValues.MaxValue)]
     public int? Page { get; set; }
@@ -11,6 +11,5 @@ public class PagingSortFilterParams
     [Range(1, LimitValues.MaxValue)]
     public int? Limit { get; set; }
     public string? Sort { get; set; }
-    public string? Order { get; set; }
-    public string? ThemeId { get; set; }
+    public string? Order { get; set; }    
 }

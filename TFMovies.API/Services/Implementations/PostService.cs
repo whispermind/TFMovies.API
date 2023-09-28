@@ -1,5 +1,4 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System.Data;
+﻿using System.Data;
 using System.Net;
 using System.Security.Claims;
 using TFMovies.API.Common.Constants;
@@ -44,9 +43,9 @@ public class PostService : IPostService
 
     public async Task<PostCreateResponse> CreateAsync(PostCreateRequest model, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
-        CheckUserFoundOrThrow(currentUser);
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
 
         var theme = await GetThemeByIdAsync(model.ThemeId);
 
@@ -120,9 +119,9 @@ public class PostService : IPostService
         return response;
     }
 
-    public async Task<PostsPaginatedResponse> GetAllAsync(PagingSortFilterParams model, PostsQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostsPaginatedResponse> GetAllAsync(PagingSortParams pagingSortModel, PostsFilterParams filterModel, PostsQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
         //search is available just for authorized users
         if (currentUser == null &&
@@ -146,7 +145,7 @@ public class PostService : IPostService
             MatchingCommentIdsQuery = matchedCommentIds
         };
 
-        var pagedPosts = await _postRepository.GetAllPagingAsync(model, queryDto);
+        var pagedPosts = await _postRepository.GetAllPagingAsync(pagingSortModel, filterModel, queryDto);
 
         var response = MapToPostsPaginatedResponse(pagedPosts, currentUser);
 
@@ -155,9 +154,9 @@ public class PostService : IPostService
 
     public async Task<PostGetByIdResponse> GetByIdAsync(string id, ClaimsPrincipal currentUserPrincipal, int limit)
     {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
-        CheckUserFoundOrThrow(currentUser);
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
 
         var post = await _postRepository.GetFullByIdAsync(id);
 
@@ -215,9 +214,9 @@ public class PostService : IPostService
     {
         var postDb = await GetPostByIdOrThrowAsync(id);
 
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
-        CheckUserFoundOrThrow(currentUser);
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
 
         var newComment = new PostComment
         {
@@ -240,9 +239,9 @@ public class PostService : IPostService
 
     public async Task AddLikeAsync(string id, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
-        CheckUserFoundOrThrow(currentUser);
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
 
         var post = await GetPostByIdOrThrowAsync(id);
 
@@ -261,9 +260,9 @@ public class PostService : IPostService
 
     public async Task RemoveLikeAsync(string id, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
-        CheckUserFoundOrThrow(currentUser);
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
 
         var post = await GetPostByIdOrThrowAsync(id);
 
@@ -284,7 +283,7 @@ public class PostService : IPostService
         }
     }
 
-    public async Task<IEnumerable<TagDto>> GetTagsAsync(PagingSortFilterParams model)
+    public async Task<IEnumerable<TagDto>> GetTagsAsync(PagingSortParams model)
     {
         var sortOption = (model.Sort ?? string.Empty).ToLower();
 
@@ -297,11 +296,11 @@ public class PostService : IPostService
         }) ?? Enumerable.Empty<TagDto>();
     }
 
-    public async Task<PostsPaginatedResponse> GetUserFavoritePostAsync(PagingSortFilterParams model, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PostsPaginatedResponse> GetUserFavoritePostAsync(PagingSortParams model, ClaimsPrincipal currentUserPrincipal)
     {
-        var currentUser = await GetUserByIdFromClaimAsync(currentUserPrincipal);
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
-        CheckUserFoundOrThrow(currentUser);
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
 
         var likedPostIds = await _postLikeRepository.GetLikedPostIdsByUserIdAsync(currentUser.Id);
 
@@ -316,7 +315,10 @@ public class PostService : IPostService
     //helpers
     private async Task<IEnumerable<string>> ExtractTerms(string? input, Func<IEnumerable<string>, Task<IEnumerable<string>>>? repositoryFunc = null)
     {
-        if (string.IsNullOrEmpty(input)) return Enumerable.Empty<string>();
+        if (string.IsNullOrEmpty(input))
+        {
+            return Enumerable.Empty<string>();
+        }
 
         var terms = StringParsingHelper.ParseDelimitedValues(input);
 
@@ -347,14 +349,7 @@ public class PostService : IPostService
             Data = data
         };
     }
-
-    private static void CheckUserFoundOrThrow(User? user)
-    {
-        if (user == null)
-        {
-            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
-        }
-    }
+    
     private async Task<List<Tag>> GetOrCreateTagsAsync(List<string> tagNames)
     {
         CleanAndDistinctTags(tagNames);
@@ -444,16 +439,7 @@ public class PostService : IPostService
         }
         return post;
     }
-
-    private async Task<User?> GetUserByIdFromClaimAsync(ClaimsPrincipal currentUserPrincipal)
-    {
-        var userId = currentUserPrincipal.FindFirstValue("sub");
-
-        var user = await _userRepository.FindByIdAsync(userId);
-
-        return user;
-    }
-
+    
     private static IEnumerable<TagDto> GetTagNamesFromPost(Post post)
     {
         return post.PostTags.Select(pt => new TagDto
@@ -461,9 +447,5 @@ public class PostService : IPostService
             Id = pt.Tag.Id,
             Name = pt.Tag.Name
         }).ToList() ?? Enumerable.Empty<TagDto>();
-    }
-    private async Task<bool> IsUserInRoleAsync(User user, string role)
-    {
-        return await _userRepository.IsInRoleAsync(user, role);
-    }
+    }   
 }

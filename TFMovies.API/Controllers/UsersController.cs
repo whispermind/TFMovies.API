@@ -1,9 +1,7 @@
-﻿using EllipticCurve.Utils;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
-using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -52,7 +50,7 @@ public class UsersController : ControllerBase
 
         var ipAddress = IpAddress();
 
-        var response = await _userService.LoginAsync(model, callBackUrl, ipAddress);       
+        var response = await _userService.LoginAsync(model, callBackUrl, ipAddress);
 
         return Ok(response);
     }
@@ -75,7 +73,7 @@ public class UsersController : ControllerBase
     [HttpPost("logout")]
     [Authorize]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
-    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]   
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     public async Task<IActionResult> LogoutAsync([FromBody] LogoutRequest model)
     {
@@ -99,19 +97,19 @@ public class UsersController : ControllerBase
     ///
     /// </remarks>
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(JwtTokensResponse))]
-    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]        
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     [HttpPost("refresh-token")]
     public async Task<IActionResult> RefreshTokensAsync([FromBody] RefreshTokenRequest model)
     {
         var ipAddress = IpAddress();
 
-        var response = await _userService.RefreshJwtTokens(model, ipAddress);      
+        var response = await _userService.RefreshJwtTokens(model, ipAddress);
 
         return Ok(response);
     }
 
-    
+
 
     /// <summary>
     /// Registers a new user.
@@ -319,15 +317,59 @@ public class UsersController : ControllerBase
     ///     GET /users/authors?limit=3
     ///     
     /// </remarks>
-    [HttpGet("authors")]    
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortDto>))]    
+    [HttpGet("authors")]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortInfoDto>))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetAuthorsAsync([FromQuery] PagingSortFilterParams model)
+    public async Task<IActionResult> GetAuthorsAsync([FromQuery] PagingSortParams model)
     {
         var result = await _userService.GetAuthorsAsync(model);
 
         return Ok(result);
     }
+
+
+    /// <summary>
+    /// Retrieves a paginated list of users based on the provided search and filter criteria.
+    /// </summary>
+    /// <param name="pagingSortModel">
+    /// A model containing pagination, sorting, and filtering parameters:
+    /// - **Page**: The page number. (Optional; default is 1)
+    /// - **Limit**: The maximum number of users to retrieve. (Optional; default is 10)
+    /// - **Sort**: The field by which to sort the users (e.g., "rated" or "created"). (Optional)
+    /// - **Order**: The order in which to sort the users (e.g., "asc" or "desc"). (Optional)    
+    /// </param>
+    /// <param name="filterModel">
+    /// The search and filter criteria:
+    /// - **RoleId**: A specific role ID to sort the user by. (Optional)
+    /// </param>
+    /// <param name="queryModel">
+    /// The search and filter criteria:
+    /// - **Query**: Search terms used to filter the users by email or nickname. (Optional)   
+    /// </param>
+    /// <returns>Returns a status of 200 along with a paginated list of users that match the search and filter criteria.</returns>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     GET /users?page=1&amp;limit=10&amp;sort=created&amp;order=desc&amp;roleId=roleId
+    ///     GET /users?page=1&amp;limit=10&amp;query=sample,sample1
+    ///
+    /// **Note**: This endpoint can be accessed by any user. However, the search functionality is available only for authorized users. 
+    /// </remarks>   
+    [HttpGet]
+    //[Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(UsersPaginatedResponse))]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> GetAllAsync(
+        [FromQuery] PagingSortParams pagingSortModel,
+        [FromQuery] UsersFilterParams filterModel,
+        [FromQuery] UsersQueryParams queryModel)
+    {
+        var result = await _userService.GetAllPagingAsync(pagingSortModel, filterModel, queryModel, User);
+
+        return Ok(result);
+    }    
 
     // helper methods
     private string IpAddress()
