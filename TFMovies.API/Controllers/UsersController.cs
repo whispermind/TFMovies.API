@@ -48,9 +48,7 @@ public class UsersController : ControllerBase
     {
         var callBackUrl = GenerateVerifyEmailUrl();
 
-        var ipAddress = IpAddress();
-
-        var response = await _userService.LoginAsync(model, callBackUrl, ipAddress);
+        var response = await _userService.LoginAsync(model, callBackUrl);
 
         return Ok(response);
     }
@@ -102,13 +100,10 @@ public class UsersController : ControllerBase
     [HttpPost("refresh-token")]
     public async Task<IActionResult> RefreshTokensAsync([FromBody] RefreshTokenRequest model)
     {
-        var ipAddress = IpAddress();
-
-        var response = await _userService.RefreshJwtTokens(model, ipAddress);
+        var response = await _userService.RefreshJwtTokens(model);
 
         return Ok(response);
     }
-
 
 
     /// <summary>
@@ -334,8 +329,8 @@ public class UsersController : ControllerBase
     /// <param name="pagingSortModel">
     /// A model containing pagination, sorting, and filtering parameters:
     /// - **Page**: The page number. (Optional; default is 1)
-    /// - **Limit**: The maximum number of users to retrieve. (Optional; default is 10)
-    /// - **Sort**: The field by which to sort the users (e.g., "rated" or "created"). (Optional)
+    /// - **Limit**: The maximum number of users to retrieve. (Optional; default is 100)
+    /// - **Sort**: The field by which to sort the users (e.g., "email" or "created" or "nickname"). (Optional)
     /// - **Order**: The order in which to sort the users (e.g., "asc" or "desc"). (Optional)    
     /// </param>
     /// <param name="filterModel">
@@ -344,14 +339,14 @@ public class UsersController : ControllerBase
     /// </param>
     /// <param name="queryModel">
     /// The search and filter criteria:
-    /// - **Query**: Search terms used to filter the users by email or nickname. (Optional)   
+    /// - **Users**: Search terms used to filter the users by email or nickname. (Optional)   
     /// </param>
     /// <returns>Returns a status of 200 along with a paginated list of users that match the search and filter criteria.</returns>
     /// <remarks>
     /// Sample request:
     /// 
     ///     GET /users?page=1&amp;limit=10&amp;sort=created&amp;order=desc&amp;roleId=roleId
-    ///     GET /users?page=1&amp;limit=10&amp;query=sample,sample1
+    ///     GET /users?page=1&amp;limit=10&amp;users=sample,sample1
     ///
     /// **Note**: This endpoint can be accessed by any user. However, the search functionality is available only for authorized users. 
     /// </remarks>   
@@ -369,25 +364,6 @@ public class UsersController : ControllerBase
         var result = await _userService.GetAllPagingAsync(pagingSortModel, filterModel, queryModel, User);
 
         return Ok(result);
-    }    
-
-    // helper methods
-    private string IpAddress()
-    {
-        string? ipAddressWithPort;
-
-        if (Request.Headers.ContainsKey("X-Forwarded-For"))
-            ipAddressWithPort = Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        else
-            ipAddressWithPort = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString();
-
-        if (ipAddressWithPort != null)
-        {
-            var ipAndPort = ipAddressWithPort.Split(':');
-            return ipAndPort.Length > 1 ? ipAndPort[0] : ipAddressWithPort;
-        }
-
-        return string.Empty;
     }
 
     private string GenerateVerifyEmailUrl() => $"{ExtractOriginOrDefault()}/signup";

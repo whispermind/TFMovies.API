@@ -105,7 +105,7 @@ public class UserRepository : IUserRepository
         Expression<Func<UserRoleDto, object>> sortSelector = pagingSortModel.Sort switch
         {
             SortOptions.Email => dto => dto.User.Email,
-            SortOptions.RoleName => dto => dto.Role.Name,            
+            SortOptions.RoleName => dto => dto.Role.Name,
             _ => dto => dto.User.Nickname // default
         };
 
@@ -113,7 +113,7 @@ public class UserRepository : IUserRepository
 
         var pagedUserRoles = await userRoleQuery.GetPagedDataAsync<UserRoleDto>(pagingSortDto);
 
-        return pagedUserRoles;
+        return pagedUserRoles;        
     }
 
 
@@ -151,13 +151,33 @@ public class UserRepository : IUserRepository
         return await _userManager.IsInRoleAsync(user, role);
     }
 
-    //helpers
-    private Expression<Func<User, object>> GetSortSelector(string? sort)
+    public async Task<RoleDto?> GetUserRoleDetailsAsync(User user)
     {
-        return sort switch
-        {
-            SortOptions.Email => u => u.Email,
-            _ => u => u.Nickname // default
-        };
+        //var result = await (from userRole in _context.UserRoles
+        //                    join role in _context.Roles on userRole.RoleId equals role.Id
+        //                    where userRole.UserId == user.Id
+        //                    select new RoleDto
+        //                    {
+        //                        Name = role.Name,
+        //                        Id = role.Id
+        //                    }).FirstOrDefaultAsync();
+
+
+
+        //return result ?? null;
+
+        var roleId = await _context.UserRoles
+            .Where(ur => ur.UserId == user.Id)
+            .Select(ur => ur.RoleId)
+            .SingleOrDefaultAsync();
+
+        if (roleId == default) return null;
+
+        var role = await _context.Roles
+            .Where(r => r.Id == roleId)
+            .Select(r => new RoleDto { Name = r.Name, Id = r.Id })
+            .SingleOrDefaultAsync();
+
+        return role;
     }
 }

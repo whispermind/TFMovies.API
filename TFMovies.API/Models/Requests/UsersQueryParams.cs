@@ -2,5 +2,5 @@
 
 public class UsersQueryParams
 {
-    public string? Query { get; set; }   
+    public string? Users { get; set; }   
 }

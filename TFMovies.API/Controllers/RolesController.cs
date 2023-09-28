@@ -13,7 +13,7 @@ namespace TFMovies.API.Controllers;
 /// <summary>
 /// Get all user roles.
 /// </summary>
-/// <returns>A list of themes.</returns>
+/// <returns>A list of roles.</returns>
 /// <remarks>
 /// Example:
 /// 

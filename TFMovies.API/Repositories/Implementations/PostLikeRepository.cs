@@ -54,6 +54,12 @@ public class PostLikeRepository : BaseRepository<PostLike>, IPostLikeRepository
 
         var result = await query.Take(actualLimit).ToListAsync();
 
-        return result;       
-    }    
+        return result;
+    }
+
+    public async Task<bool> IsExistAsync(string userId, string postId)
+    {
+        return await _entities
+            .AnyAsync(pl => pl.UserId == userId && pl.PostId == postId);
+    }
 }

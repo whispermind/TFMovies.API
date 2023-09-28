@@ -19,7 +19,7 @@ public class JwtService : IJwtService
         _jwtSettings = jwtSettings.Value;        
     }  
 
-    public string GenerateAccessToken(User user, IEnumerable<string> userRoles)
+    public string GenerateAccessToken(User user, string userRole)
     {
         var expiryAt = TimeUtility.AddTime(DateTime.UtcNow, _jwtSettings.AccessTokenLifeTimeUnit, _jwtSettings.AccessTokenLifeTimeDuration);
 
@@ -29,10 +29,9 @@ public class JwtService : IJwtService
             new Claim("email", user.Email)
         };
 
-        foreach (var role in userRoles)
-        {
-            claims.Add(new Claim(ClaimsIdentity.DefaultRoleClaimType, role));
-        }
+       
+        claims.Add(new Claim(ClaimsIdentity.DefaultRoleClaimType, userRole));
+        
 
         var token = CreateJwtToken(claims, _jwtSettings.ValidAudience, expiryAt);
 

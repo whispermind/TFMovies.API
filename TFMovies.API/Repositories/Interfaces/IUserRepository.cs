@@ -26,4 +26,5 @@ public interface IUserRepository
     public Task<IEnumerable<string>> GetRolesAsync(User user);
     public Task<IdentityResult> RemoveFromRolesAsync(User user, IEnumerable<string> roles);
     public Task<bool> IsInRoleAsync(User user, string role);
+    public Task<RoleDto?> GetUserRoleDetailsAsync(User user);
 }

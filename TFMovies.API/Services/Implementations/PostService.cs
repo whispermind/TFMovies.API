@@ -125,14 +125,14 @@ public class PostService : IPostService
 
         //search is available just for authorized users
         if (currentUser == null &&
-            (!string.IsNullOrEmpty(queryModel.Posts) ||
+            (!string.IsNullOrEmpty(queryModel.Articles) ||
              !string.IsNullOrEmpty(queryModel.Tags) ||
              !string.IsNullOrEmpty(queryModel.Comments)))
         {
             throw new UnauthorizedAccessException();
         }
 
-        var termsQuery = await ExtractTerms(queryModel.Posts);
+        var termsQuery = await ExtractTerms(queryModel.Articles);
 
         var matchedTagIds = await ExtractTerms(queryModel.Tags, _tagRepository.GetMatchingIdsAsync);
 
@@ -242,6 +242,13 @@ public class PostService : IPostService
         var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
         UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
+
+        var isExist = await _postLikeRepository.IsExistAsync(currentUser.Id, id);
+
+        if (isExist)
+        {
+            return;
+        }
 
         var post = await GetPostByIdOrThrowAsync(id);
 

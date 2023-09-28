@@ -13,9 +13,7 @@ public class RefreshToken : BaseModel
     
     public DateTime ExpiresAt { get; set; }
    
-    public DateTime CreatedAt { get; set; }
-    
-    public string CreatedByIp { get; set; }
+    public DateTime CreatedAt { get; set; }    
 
     public DateTime? RevokedAt { get; set; }
 

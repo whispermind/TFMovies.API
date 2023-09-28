@@ -20,6 +20,8 @@ public static class ErrorMessages
     public const string InvalidRole = "Invalid Role specified.";
     public const string UpdateRoleFailed = "Error updating user role";
     public const string SearchColumnsNotDefined = "Search Columns doesn't defined in derived repository.";
+    public const string UserMissingRoleError = "The user does not have an assigned role.";
+    public const string SearchFailedNoValuesProvided = "No search values provided. Please enter a value to proceed with the search.";
 
     // Files exception
     public const string UploadedFileInvalid = "No file uploaded or the file name is invalid.";
