@@ -125,18 +125,18 @@ public class PostService : IPostService
 
         //search is available just for authorized users
         if (currentUser == null &&
-            (!string.IsNullOrEmpty(queryModel.Query) ||
-             !string.IsNullOrEmpty(queryModel.TagQuery) ||
-             !string.IsNullOrEmpty(queryModel.CommentQuery)))
+            (!string.IsNullOrEmpty(queryModel.Posts) ||
+             !string.IsNullOrEmpty(queryModel.Tags) ||
+             !string.IsNullOrEmpty(queryModel.Comments)))
         {
             throw new UnauthorizedAccessException();
         }
 
-        var termsQuery = await ExtractTerms(queryModel.Query);
+        var termsQuery = await ExtractTerms(queryModel.Posts);
 
-        var matchedTagIds = await ExtractTerms(queryModel.TagQuery, _tagRepository.GetMatchingIdsAsync);
+        var matchedTagIds = await ExtractTerms(queryModel.Tags, _tagRepository.GetMatchingIdsAsync);
 
-        var matchedCommentIds = await ExtractTerms(queryModel.CommentQuery, _postCommentRepository.GetMatchingIdsAsync);
+        var matchedCommentIds = await ExtractTerms(queryModel.Comments, _postCommentRepository.GetMatchingIdsAsync);
 
         var queryDto = new PostsQueryDto
         {

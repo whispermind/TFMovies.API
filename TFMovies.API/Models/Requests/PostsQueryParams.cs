@@ -2,7 +2,7 @@
 
 public class PostsQueryParams
 {
-    public string? Query { get; set; }
-    public string? TagQuery { get; set; }
-    public string? CommentQuery { get; set; }
+    public string? Posts { get; set; }
+    public string? Tags { get; set; }
+    public string? Comments { get; set; }
 }
