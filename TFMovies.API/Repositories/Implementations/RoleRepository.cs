@@ -16,10 +16,19 @@ public class RoleRepository : IRoleRepository
 
     public async Task<IEnumerable<RoleDto>> GetAllAsync()
     {
-        return await _roleManager.Roles.Select(r => new RoleDto
+        var result = await _roleManager.Roles.Select(r => new RoleDto
         {
             Id = r.Id,
             Name = r.Name
         }).ToListAsync();
+
+        return result;
+    }
+
+    public async Task<IdentityRole> FindByIdAsync(string id)
+    {
+        var result = await _roleManager.FindByIdAsync(id);
+        
+        return result;
     }
 }

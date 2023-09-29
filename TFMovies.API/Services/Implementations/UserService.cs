@@ -21,6 +21,7 @@ namespace TFMovies.API.Services.Implementations;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
     private readonly IUserActionTokenRepository _actionTokenRepository;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IJwtService _jwtService;
@@ -30,6 +31,7 @@ public class UserService : IUserService
 
     public UserService(
         IUserRepository userRepository,
+        IRoleRepository roleRepository,
         IJwtService jwtService,
         IUserActionTokenRepository actionTokenRepository,
         IOptions<UserActionTokenSettings> actionTokenSettings,
@@ -39,6 +41,7 @@ public class UserService : IUserService
 
     {
         _userRepository = userRepository;
+        _roleRepository = roleRepository;
         _actionTokenRepository = actionTokenRepository;
         _refreshTokenRepository = refreshTokenRepository;
         _jwtService = jwtService;
@@ -236,25 +239,22 @@ public class UserService : IUserService
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject, null);
     }
 
-    public async Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal)
+    public async Task ChangeRoleAsync(string id, ChangeRoleRequest model)
     {
-        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
+        var userDb = await GetUserOrThrowAsync(userId: id);
 
-        if (currentUser == null)
-        {
-            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
-        }
+        var newRole = await _roleRepository.FindByIdAsync(model.NewRoleId);
 
-        if (!IsValidRole(newRole))
+        if (newRole == null)
         {
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.InvalidRole);
-        }
+        }        
 
-        var currentRoles = await _userRepository.GetRolesAsync(currentUser);
+        var currentRoles = await _userRepository.GetRolesAsync(userDb);
 
-        await _userRepository.RemoveFromRolesAsync(currentUser, currentRoles);
+        await _userRepository.RemoveFromRolesAsync(userDb, currentRoles);
 
-        var result = await _userRepository.AddToRoleAsync(currentUser, newRole);
+        var result = await _userRepository.AddToRoleAsync(userDb, newRole.Name);
 
         if (!result.Succeeded)
         {

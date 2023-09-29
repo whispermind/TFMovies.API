@@ -153,7 +153,7 @@ public class UsersController : ControllerBase
     ///     }     
     ///
     /// </remarks>  
-    [HttpPost("verify-email", Name = "VerifyEmail")]
+    [HttpPost("verify-email")]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
@@ -234,7 +234,7 @@ public class UsersController : ControllerBase
     ///     }     
     ///
     /// </remarks>  
-    [HttpPost("validate-reset-token", Name = "ValidateResetToken")]
+    [HttpPost("validate-reset-token")]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
@@ -274,30 +274,33 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Changes the role of the currently authenticated user.
+    /// Changes the role of the specified user.
     /// </summary>
-    /// <param name="newRole">The new role to assign to the user.</param>
+    /// <param name="id">User Id for whom the role needs to be changed.</param>
+    /// <param name="model">
+    /// A model containing newRoleId parameter:
+    /// - **newRoleId**:The Id of the new role to assign to the user. This Id should correspond to a valid role in the system. (Required)     
+    /// </param>   
     /// <returns>Status 204 if successful.</returns>
     /// <remarks>
     /// Example:
     /// 
-    ///     PUT /users/change-role
+    ///     PUT /users/{id}/change-role
     ///     {
-    ///        "newRole": "Author"
+    ///        "newRoleId": "0c11e813-899f-40dd-96a4-9f576f8dc67c"
     ///     }
     /// 
-    /// Note: The role change will only be successful if the user is authorized and the specified role exists.
+    /// Note: This endpoint can be accessed by Admin only.
     /// </remarks>        
-    [HttpPut("change-role")]
-    [Authorize]
-    [SwaggerOperation(Tags = new[] { "Helpers" })]
+    [HttpPut("{id}/change-role")]
+    [Authorize(Roles = RoleNames.Admin)]
     [SwaggerResponse(204, "NO_CONTENT")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> ChangeRoleAsync(string newRole)
+    public async Task<IActionResult> ChangeRoleAsync([FromRoute] string id, [FromBody] ChangeRoleRequest model)
     {
-        await _userService.ChangeRoleAsync(newRole, User);
+        await _userService.ChangeRoleAsync(id, model);
 
         return NoContent();
     }

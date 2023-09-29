@@ -15,7 +15,7 @@ public static class ErrorMessages
     public const string IncorrectPasswordComplexity = "The Password must be at least 8 characters long and contain only Latin letters, at least one uppercase letter, one lowercase letter, one number, and one special character like -, _, +, =.";
     //other
     public const string IncorrectPassword = "Password is incorrect.";
-    public const string UserNotFound = "User with the provided email not found.";
+    public const string UserNotFound = "User not found.";
     public const string UnconfirmedEmail = "Email address has not been confirmed yet. Please check your inbox for the confirmation link.";
     public const string InvalidRole = "Invalid Role specified.";
     public const string UpdateRoleFailed = "Error updating user role";

@@ -10,16 +10,6 @@ namespace TFMovies.API.Controllers;
 [ApiController]
 [Produces("application/json")]
 
-/// <summary>
-/// Get all user roles.
-/// </summary>
-/// <returns>A list of roles.</returns>
-/// <remarks>
-/// Example:
-/// 
-///     GET /roles
-/// 
-/// </remarks>
 public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;
@@ -29,6 +19,16 @@ public class RolesController : ControllerBase
         _roleService = roleService;
     }
 
+    /// <summary>
+    /// Get all user roles.
+    /// </summary>
+    /// <returns>A list of roles.</returns>
+    /// <remarks>
+    /// Example:
+    /// 
+    ///     GET /roles
+    /// 
+    /// </remarks>
     [HttpGet]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<RoleDto>))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
