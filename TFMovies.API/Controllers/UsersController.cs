@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
+using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -328,18 +329,18 @@ public class UsersController : ControllerBase
     /// </summary>
     /// <param name="pagingSortModel">
     /// A model containing pagination, sorting, and filtering parameters:
-    /// - **Page**: The page number. (Optional; default is 1)
-    /// - **Limit**: The maximum number of users to retrieve. (Optional; default is 100)
-    /// - **Sort**: The field by which to sort the users (e.g., "email" or "created" or "nickname"). (Optional)
-    /// - **Order**: The order in which to sort the users (e.g., "asc" or "desc"). (Optional)    
+    /// - **page**: The page number. (Optional; default is 1)
+    /// - **limit**: The maximum number of users to retrieve. (Optional; default is 100)
+    /// - **sort**: The field by which to sort the users ("email" or "role" or "nickname"(default)). (Optional)
+    /// - **order**: The order in which to sort the users ("asc"(default) or "desc"). (Optional)    
     /// </param>
     /// <param name="filterModel">
     /// The search and filter criteria:
-    /// - **RoleId**: A specific role ID to sort the user by. (Optional)
+    /// - **roleId**: A specific role ID to sort the user by. (Optional)
     /// </param>
     /// <param name="queryModel">
     /// The search and filter criteria:
-    /// - **Users**: Search terms used to filter the users by email or nickname. (Optional)   
+    /// - **users**: Search terms used to filter the users by email or nickname. (Optional)   
     /// </param>
     /// <returns>Returns a status of 200 along with a paginated list of users that match the search and filter criteria.</returns>
     /// <remarks>
@@ -351,7 +352,7 @@ public class UsersController : ControllerBase
     /// **Note**: This endpoint can be accessed by any user. However, the search functionality is available only for authorized users. 
     /// </remarks>   
     [HttpGet]
-    //[Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(UsersPaginatedResponse))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]

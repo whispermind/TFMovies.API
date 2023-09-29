@@ -13,8 +13,7 @@ public class RefreshTokenRepository : BaseRepository<RefreshToken>, IRefreshToke
     public async Task<RefreshToken?> FindByTokenAsync(string token)
     {
         var result = await _entities
-               .FirstOrDefaultAsync(item =>
-                 item.Token == token);
+               .FirstOrDefaultAsync(item => item.Token == token);
 
         return result;
     }

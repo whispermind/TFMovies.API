@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using TFMovies.API.Common.Constants;
-using TFMovies.API.Data.Entities;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -98,7 +97,8 @@ public class PostsController : ControllerBase
     /// </param>
     /// <param name="filterModel">
     /// The search and filter criteria:
-    /// - **themeId**: A specific theme ID to sort the posts by. (Optional)
+    /// - **themeId**: A specific Theme Id to sort the posts by. (Optional)
+    /// - **userId**: A specific User Id to sort the posts by. (Optional)
     /// </param>
     /// <param name="queryModel">
     /// The search and filter criteria:
@@ -114,6 +114,7 @@ public class PostsController : ControllerBase
     ///     GET /posts?page=1&amp;limit=10&amp;articles=text1,text2
     ///     GET /posts?page=1&amp;limit=10&amp;tags=tag1,tag2
     ///     GET /posts?page=1&amp;limit=10&amp;comments=commentText1,commentText2
+    ///     GET /posts?page=1&amp;limit=10&amp;userId=53923956-0b47-4ecd-830a-eceeae8486d5
     ///
     /// **Note**: This endpoint can be accessed by any user. However, the search functionality is available only for authorized users. 
     /// </remarks>   
