@@ -45,14 +45,18 @@ public class PostLikeRepository : BaseRepository<PostLike>, IPostLikeRepository
 
         if (order == "asc")
         {
-            query = query.OrderBy(g => g.LikeCount);
+            query = query
+                .OrderBy(g => g.LikeCount);
         }
         else
         {
-            query = query.OrderByDescending(g => g.LikeCount);
+            query = query
+                .OrderByDescending(g => g.LikeCount);
         }
 
-        var result = await query.Take(actualLimit).ToListAsync();
+        var result = await query
+            .Take(actualLimit)
+            .ToListAsync();
 
         return result;
     }

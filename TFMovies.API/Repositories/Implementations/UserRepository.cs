@@ -153,25 +153,15 @@ public class UserRepository : IUserRepository
 
     public async Task<RoleDto?> GetUserRoleDetailsAsync(User user)
     {
-        //var result = await (from userRole in _context.UserRoles
-        //                    join role in _context.Roles on userRole.RoleId equals role.Id
-        //                    where userRole.UserId == user.Id
-        //                    select new RoleDto
-        //                    {
-        //                        Name = role.Name,
-        //                        Id = role.Id
-        //                    }).FirstOrDefaultAsync();
-
-
-
-        //return result ?? null;
-
         var roleId = await _context.UserRoles
             .Where(ur => ur.UserId == user.Id)
             .Select(ur => ur.RoleId)
             .SingleOrDefaultAsync();
 
-        if (roleId == default) return null;
+        if (roleId == null)
+        {
+            return null;
+        }
 
         var role = await _context.Roles
             .Where(r => r.Id == roleId)

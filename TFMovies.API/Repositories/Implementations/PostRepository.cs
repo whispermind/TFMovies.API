@@ -52,12 +52,20 @@ public class PostRepository : BaseRepository<Post>, IPostRepository
 
     public async Task<PagedResult<Post>> GetAllPagingAsync(PagingSortParams pagingSortModel, PostsFilterParams filterModel, PostsQueryDto dto)
     {
-        var query = Query();       
+        var query = Query();
 
         // Filter by Theme
         if (!string.IsNullOrEmpty(filterModel.ThemeId))
         {
             query = query.Where(p => p.ThemeId == filterModel.ThemeId);
+
+            return await FetchPagedResultsAsync(query, pagingSortModel);
+        }
+
+        // Filter by UserId
+        if (!string.IsNullOrEmpty(filterModel.UserId))
+        {
+            query = query.Where(p => p.UserId == filterModel.UserId);
 
             return await FetchPagedResultsAsync(query, pagingSortModel);
         }
