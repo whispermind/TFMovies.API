@@ -17,7 +17,7 @@ public interface IUserService
     public Task ForgotPasswordAsync(PasswordForgotRequest model, string callBackUrl);
     public Task<UserActionToken> ValidateResetTokenAsync(string token, bool setUsed);
     public Task ResetPasswordAsync(PasswordResetRequest model);    
-    public Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal);
+    public Task ChangeRoleAsync(string id, ChangeRoleRequest model);
     public Task<IEnumerable<UserShortInfoDto>> GetAuthorsAsync(PagingSortParams model);
     public Task<UsersPaginatedResponse> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryParams queryModel, ClaimsPrincipal currentUserPrincipal);
 }
