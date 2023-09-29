@@ -17,7 +17,7 @@ public interface IBaseRepository<T>
     public Task DeleteRangeAsync(IEnumerable<T> entities);
     public Task SaveChangesAsync();
     public IQueryable<T> Query();
-    public Task<PagedResult<T>> GetPagedDataAsync(PagingSortFilterDto<T> dto, IQueryable<T>? queryOverride = null);
+    public Task<PagedResult<T>> GetPagedDataAsync(PagingSortDto<T> dto, IQueryable<T>? queryOverride = null);
     public IQueryable<T> SearchByTerms(IEnumerable<string> terms);
     public Task<IEnumerable<string>> GetMatchingIdsAsync(IEnumerable<string> terms);
 }

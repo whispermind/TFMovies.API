@@ -34,13 +34,8 @@ public static class IQueryableExtensions
     }
 
 
-    public static async Task<PagedResult<T>> GetPagedDataAsync<T>(this IQueryable<T> query, PagingSortFilterDto<T> dto)
+    public static async Task<PagedResult<T>> GetPagedDataAsync<T>(this IQueryable<T> query, PagingSortDto<T> dto)
     {
-        if (dto.FilterPredicate != null)
-        {
-            query = query.Where(dto.FilterPredicate);
-        }
-
         var totalRecords = await query.CountAsync();
 
         if (totalRecords == 0)
@@ -72,7 +67,7 @@ public static class IQueryableExtensions
         {
             query = dto.Order switch
             {
-                "asc" => query.OrderBy(dto.SortSelector),
+                OrderOptions.Asc => query.OrderBy(dto.SortSelector),
                 _ => query.OrderByDescending(dto.SortSelector)
             };
         }

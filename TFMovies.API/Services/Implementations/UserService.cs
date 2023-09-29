@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Security.Claims;
@@ -20,6 +21,7 @@ namespace TFMovies.API.Services.Implementations;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
     private readonly IUserActionTokenRepository _actionTokenRepository;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IJwtService _jwtService;
@@ -29,6 +31,7 @@ public class UserService : IUserService
 
     public UserService(
         IUserRepository userRepository,
+        IRoleRepository roleRepository,
         IJwtService jwtService,
         IUserActionTokenRepository actionTokenRepository,
         IOptions<UserActionTokenSettings> actionTokenSettings,
@@ -38,6 +41,7 @@ public class UserService : IUserService
 
     {
         _userRepository = userRepository;
+        _roleRepository = roleRepository;
         _actionTokenRepository = actionTokenRepository;
         _refreshTokenRepository = refreshTokenRepository;
         _jwtService = jwtService;
@@ -45,7 +49,7 @@ public class UserService : IUserService
         _emailService = emailService;
         _postLikeRepository = postLikeRepository;
     }
-    public async Task<LoginResponse> LoginAsync(LoginRequest model, string callBackUrl, string ipAddress)
+    public async Task<LoginResponse> LoginAsync(LoginRequest model, string callBackUrl)
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
@@ -63,31 +67,29 @@ public class UserService : IUserService
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.UnconfirmedEmail);
         }
 
-        var userRoles = await _userRepository.GetRolesAsync(userDb);
+        var roleDetails = await _userRepository.GetUserRoleDetailsAsync(userDb);
 
-        var userRole = userRoles.FirstOrDefault();
-
-        if (userRoles == null)
+        if (roleDetails == null)
         {
-            userRole = "Undefined";
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.UserMissingRoleError);
         }
 
-        var accessToken = _jwtService.GenerateAccessToken(userDb, userRoles);
+        var accessToken = _jwtService.GenerateAccessToken(userDb, roleDetails.Name);
 
         var refreshToken = await GenerateUniqueRefreshToken();
 
-        refreshToken.UserId = userDb.Id;
-        refreshToken.CreatedByIp = ipAddress;
+        refreshToken.UserId = userDb.Id;        
 
         await _refreshTokenRepository.CreateAsync(refreshToken);
 
         return new LoginResponse
         {
-            CurrentUser = new CurrentUser
+            CurrentUser = new UserShortInfoDto
             {
                 Id = userDb.Id,
                 Nickname = userDb.Nickname,
-                Role = userRole
+                Email = userDb.Email,
+                Role = roleDetails
             },
             AccessToken = accessToken,
             RefreshToken = refreshToken.Token
@@ -101,19 +103,24 @@ public class UserService : IUserService
         if (tokenDb != null)
         {
             tokenDb.RevokedAt = DateTime.UtcNow;
-            await _refreshTokenRepository.UpdateAsync(tokenDb);
+            await _refreshTokenRepository.SaveChangesAsync();
         }
     }
 
-    public async Task<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model, string ipAddress)
+    public async Task<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model)
     {
-        var tokenDb = await ValidateRefreshToken(model.RefreshToken, ipAddress);
+        var tokenDb = await ValidateRefreshToken(model.RefreshToken);
 
         var userDb = await GetUserOrThrowAsync(userId: tokenDb.UserId);
 
-        var userRoles = await _userRepository.GetRolesAsync(userDb);
+        var userRole = (await _userRepository.GetRolesAsync(userDb)).FirstOrDefault();
 
-        var newAccessToken = _jwtService.GenerateAccessToken(userDb, userRoles);
+        if (userRole == null)
+        {
+            userRole = "Undefined";
+        }
+
+        var newAccessToken = _jwtService.GenerateAccessToken(userDb, userRole);
 
         var newRefreshToken = await GenerateUniqueRefreshToken();
 
@@ -232,27 +239,22 @@ public class UserService : IUserService
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject, null);
     }
 
-    public async Task ChangeRoleAsync(string newRole, ClaimsPrincipal currentUserPrincipal)
+    public async Task ChangeRoleAsync(string id, ChangeRoleRequest model)
     {
-        var userId = currentUserPrincipal.FindFirstValue("sub");
+        var userDb = await GetUserOrThrowAsync(userId: id);
 
-        var currentUser = await _userRepository.FindByIdAsync(userId);
+        var newRole = await _roleRepository.FindByIdAsync(model.NewRoleId);
 
-        if (currentUser == null)
-        {
-            throw new ServiceException(HttpStatusCode.Unauthorized, ErrorMessages.UserNotFound);
-        }
-
-        if (!IsValidRole(newRole))
+        if (newRole == null)
         {
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.InvalidRole);
-        }
+        }        
 
-        var currentRoles = await _userRepository.GetRolesAsync(currentUser);
+        var currentRoles = await _userRepository.GetRolesAsync(userDb);
 
-        await _userRepository.RemoveFromRolesAsync(currentUser, currentRoles);
+        await _userRepository.RemoveFromRolesAsync(userDb, currentRoles);
 
-        var result = await _userRepository.AddToRoleAsync(currentUser, newRole);
+        var result = await _userRepository.AddToRoleAsync(userDb, newRole.Name);
 
         if (!result.Succeeded)
         {
@@ -260,7 +262,7 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<IEnumerable<UserShortDto>> GetAuthorsAsync(PagingSortFilterParams model)
+    public async Task<IEnumerable<UserShortInfoDto>> GetAuthorsAsync(PagingSortParams model)
     {           
         var topUsersByPostLikeCounts = await _postLikeRepository.GetUserIdsByPostLikeCountsAsync(model.Limit, model.Order);
 
@@ -268,17 +270,71 @@ public class UserService : IUserService
 
         var users = await _userRepository.GetUsersByIdsAsync(userIds);
         
-        var result = users?.Select(a => new UserShortDto
+        var result = users?.Select(a => new UserShortInfoDto
         {
             Id = a.Id,
             Nickname = a.Nickname,
             Email = a.Email
-        }) ?? Enumerable.Empty<UserShortDto>();
+        }) ?? Enumerable.Empty<UserShortInfoDto>();
 
         return result;
     }
 
+    public async Task<UsersPaginatedResponse> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
+    {
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
+
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
+
+        var termsQuery = Enumerable.Empty<string>();
+
+        if (!string.IsNullOrEmpty(queryModel.Users))
+        {
+            termsQuery = StringParsingHelper.ParseDelimitedValues(queryModel.Users);
+        }
+        else if (string.IsNullOrEmpty(queryModel.Users) && !await _userRepository.IsInRoleAsync(currentUser, RoleNames.Admin))
+        {
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.SearchFailedNoValuesProvided);
+        }
+
+        var queryDto = new UsersQueryDto
+        {
+            Query = termsQuery
+        };
+
+        if (string.IsNullOrEmpty(pagingSortModel.Order))
+        {
+            pagingSortModel.Order = OrderOptions.Asc;
+        }
+
+        var pagedUsers = await _userRepository.GetAllPagingAsync(pagingSortModel, filterModel, queryDto);
+
+        var response = MapToUsersPaginatedResponse(pagedUsers);
+
+        return response;
+    }
+
     //helpers
+    private UsersPaginatedResponse MapToUsersPaginatedResponse(PagedResult<UserRoleDto> pagedUsers)
+    {
+        var data = pagedUsers.Data.Select(ur => new UserShortInfoDto
+        {
+            Id = ur.User.Id,
+            Nickname = ur.User.Nickname,
+            Email = ur.User.Email,
+            Role = ur.Role
+
+        }).ToList();
+
+        return new UsersPaginatedResponse
+        {
+            Page = pagedUsers.Page,
+            Limit = pagedUsers.Limit,
+            TotalPages = pagedUsers.TotalPages,
+            TotalRecords = pagedUsers.TotalRecords,
+            Data = data
+        };
+    }
     private async Task SendEmailByEmailSubjectAsync(User user, string emailSubject, string? callBackUrl)
     {
         string emailContent;
@@ -429,9 +485,9 @@ public class UserService : IUserService
         }
     }
 
-    private async ValueTask<RefreshToken> ValidateRefreshToken(string token, string ipAddress)
+    private async ValueTask<RefreshToken> ValidateRefreshToken(string token)
     {
-        var tokenDb = await _refreshTokenRepository.FindByTokenAndIpAsync(token, ipAddress);
+        var tokenDb = await _refreshTokenRepository.FindByTokenAsync(token);
 
         if (tokenDb == null || !tokenDb.IsActive)
         {

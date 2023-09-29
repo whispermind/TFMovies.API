@@ -6,18 +6,16 @@ namespace TFMovies.API.Extensions;
 
 public static class RepositoryExtensions
 {
-    public static PagingSortFilterDto<T> ToPagingDto<T>(
-        this PagingSortFilterParams model,
-        Expression<Func<T, object>>? sortSelector = null,
-        Expression<Func<T, bool>>? filterPredicate = null)
+    public static PagingSortDto<T> ToPagingDto<T>(
+        this PagingSortParams model,
+        Expression<Func<T, object>>? sortSelector = null)      
     {
-        return new PagingSortFilterDto<T>
+        return new PagingSortDto<T>
         {
             Page = model.Page,
             Limit = model.Limit,
             Order = model.Order,
-            SortSelector = sortSelector,
-            FilterPredicate = filterPredicate
+            SortSelector = sortSelector            
         };
     }
 }

@@ -11,6 +11,7 @@ namespace TFMovies.API.Controllers;
 
 [Route("themes")]
 [ApiController]
+[Produces("application/json")]
 [Authorize(Roles = RoleNames.Admin)]
 public class ThemesController : ControllerBase
 {

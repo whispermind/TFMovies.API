@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using TFMovies.API.Common.Constants;
-using TFMovies.API.Data.Entities;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -89,28 +88,33 @@ public class PostsController : ControllerBase
     /// <summary>
     /// Retrieves a paginated list of posts based on the provided search and filter criteria.
     /// </summary>
-    /// <param name="model">
+    /// <param name="pagingSortModel">
     /// A model containing pagination, sorting, and filtering parameters:
-    /// - **Page**: The page number. (Optional; default is 1)
-    /// - **Limit**: The maximum number of posts to retrieve. (Optional; default is 10)
-    /// - **Sort**: The field by which to sort the posts (e.g., "rated" or "created"). (Optional)
-    /// - **Order**: The order in which to sort the posts (e.g., "asc" or "desc"). (Optional)
-    /// - **ThemeId**: A specific theme ID to sort the posts by. (Optional)
+    /// - **page**: The page number. (Optional; default is 1)
+    /// - **limit**: The maximum number of posts to retrieve. (Optional; default is 100)
+    /// - **sort**: The field by which to sort the posts ("rated" or "created"(default)). (Optional)
+    /// - **order**: The order in which to sort the posts ("asc" or "desc"(default)). (Optional)    
+    /// </param>
+    /// <param name="filterModel">
+    /// The search and filter criteria:
+    /// - **themeId**: A specific Theme Id to sort the posts by. (Optional)
+    /// - **userId**: A specific User Id to sort the posts by. (Optional)
     /// </param>
     /// <param name="queryModel">
     /// The search and filter criteria:
-    /// - **Query**: Search terms used to filter the posts by title or content. (Optional)
-    /// - **TagQuery**: Search terms to filter the posts by associated tags. (Optional)
-    /// - **CommentQuery**: Search terms to filter the posts by associated comments. (Optional)
+    /// - **articles**: Search terms used to filter the posts by title or content. (Optional)
+    /// - **tags**: Search terms to filter the posts by associated tags. (Optional)
+    /// - **comments**: Search terms to filter the posts by associated comments. (Optional)
     /// </param>
     /// <returns>Returns a status of 200 along with a paginated list of posts that match the search and filter criteria.</returns>
     /// <remarks>
     /// Sample request:
     /// 
     ///     GET /posts?page=1&amp;limit=10&amp;sort=created&amp;themeId=ThemeId1
-    ///     GET /posts?page=1&amp;limit=10&amp;query=sample,sample1
-    ///     GET /posts?page=1&amp;limit=10&amp;tagQuery=tag1,tag2
-    ///     GET /posts?page=1&amp;limit=10&amp;commentQuery=commentText
+    ///     GET /posts?page=1&amp;limit=10&amp;articles=text1,text2
+    ///     GET /posts?page=1&amp;limit=10&amp;tags=tag1,tag2
+    ///     GET /posts?page=1&amp;limit=10&amp;comments=commentText1,commentText2
+    ///     GET /posts?page=1&amp;limit=10&amp;userId=53923956-0b47-4ecd-830a-eceeae8486d5
     ///
     /// **Note**: This endpoint can be accessed by any user. However, the search functionality is available only for authorized users. 
     /// </remarks>   
@@ -120,9 +124,12 @@ public class PostsController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetAllAsync([FromQuery] PagingSortFilterParams model, [FromQuery] PostsQueryParams queryModel)
+    public async Task<IActionResult> GetAllAsync(
+        [FromQuery] PagingSortParams pagingSortModel,
+        [FromQuery] PostsFilterParams filterModel,
+        [FromQuery] PostsQueryParams queryModel)
     {
-        var result = await _postService.GetAllAsync(model, queryModel, User);
+        var result = await _postService.GetAllAsync(pagingSortModel, filterModel, queryModel, User);
 
         return Ok(result);
     }
@@ -236,10 +243,10 @@ public class PostsController : ControllerBase
     /// Retrieves the posts liked by the authenticated user.
     /// </summary>
     /// <param name="model">A model containing pagination, sorting, and filtering parameters:
-    /// - **Page**: The page number. (Optional)
-    /// - **Limit**: The maximum number of posts to retrieve. (Optional)
-    /// - **Sort**: The field by which to sort the posts. (Optional)
-    /// - **Order**: The order in which to sort the posts (e.g., ascending or descending). (Optional)    
+    /// - **page**: The page number. (Optional)
+    /// - **limit**: The maximum number of posts to retrieve. (Optional)
+    /// - **sort**: The field by which to sort the posts ("created"(default) or "rated"). (Optional)
+    /// - **order**: The order in which to sort the posts ("asc" or "desc"(default)). (Optional)    
     /// </param>
     /// <returns>Returns a status of 200 along with a list of posts' brief details if the operation is successful.</returns>
     /// <remarks>
@@ -255,7 +262,7 @@ public class PostsController : ControllerBase
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetUserFavoritePostAsync([FromQuery] PagingSortFilterParams model)
+    public async Task<IActionResult> GetUserFavoritePostAsync([FromQuery] PagingSortParams model)
     {
         var result = await _postService.GetUserFavoritePostAsync(model, User);
 

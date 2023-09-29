@@ -4,6 +4,6 @@ namespace TFMovies.API.Services.Interfaces;
 
 public interface IJwtService
 {
-    public string GenerateAccessToken(User user, IEnumerable<string> userRoles);
+    public string GenerateAccessToken(User user, string userRole);
     public RefreshToken GenerateRefreshTokenAsync();      
 }

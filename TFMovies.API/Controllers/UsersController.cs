@@ -1,5 +1,4 @@
-﻿using EllipticCurve.Utils;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
@@ -50,9 +49,7 @@ public class UsersController : ControllerBase
     {
         var callBackUrl = GenerateVerifyEmailUrl();
 
-        var ipAddress = IpAddress();
-
-        var response = await _userService.LoginAsync(model, callBackUrl, ipAddress);       
+        var response = await _userService.LoginAsync(model, callBackUrl);
 
         return Ok(response);
     }
@@ -75,7 +72,7 @@ public class UsersController : ControllerBase
     [HttpPost("logout")]
     [Authorize]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
-    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]   
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     public async Task<IActionResult> LogoutAsync([FromBody] LogoutRequest model)
     {
@@ -99,19 +96,16 @@ public class UsersController : ControllerBase
     ///
     /// </remarks>
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(JwtTokensResponse))]
-    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]        
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     [HttpPost("refresh-token")]
     public async Task<IActionResult> RefreshTokensAsync([FromBody] RefreshTokenRequest model)
     {
-        var ipAddress = IpAddress();
-
-        var response = await _userService.RefreshJwtTokens(model, ipAddress);      
+        var response = await _userService.RefreshJwtTokens(model);
 
         return Ok(response);
     }
 
-    
 
     /// <summary>
     /// Registers a new user.
@@ -159,7 +153,7 @@ public class UsersController : ControllerBase
     ///     }     
     ///
     /// </remarks>  
-    [HttpPost("verify-email", Name = "VerifyEmail")]
+    [HttpPost("verify-email")]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
@@ -240,7 +234,7 @@ public class UsersController : ControllerBase
     ///     }     
     ///
     /// </remarks>  
-    [HttpPost("validate-reset-token", Name = "ValidateResetToken")]
+    [HttpPost("validate-reset-token")]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
@@ -280,30 +274,33 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Changes the role of the currently authenticated user.
+    /// Changes the role of the specified user.
     /// </summary>
-    /// <param name="newRole">The new role to assign to the user.</param>
+    /// <param name="id">User Id for whom the role needs to be changed.</param>
+    /// <param name="model">
+    /// A model containing newRoleId parameter:
+    /// - **newRoleId**:The Id of the new role to assign to the user. This Id should correspond to a valid role in the system. (Required)     
+    /// </param>   
     /// <returns>Status 204 if successful.</returns>
     /// <remarks>
     /// Example:
     /// 
-    ///     PUT /users/change-role
+    ///     PUT /users/{id}/change-role
     ///     {
-    ///        "newRole": "Author"
+    ///        "newRoleId": "0c11e813-899f-40dd-96a4-9f576f8dc67c"
     ///     }
     /// 
-    /// Note: The role change will only be successful if the user is authorized and the specified role exists.
+    /// Note: This endpoint can be accessed by Admin only.
     /// </remarks>        
-    [HttpPut("change-role")]
-    [Authorize]
-    [SwaggerOperation(Tags = new[] { "Helpers" })]
+    [HttpPut("{id}/change-role")]
+    [Authorize(Roles = RoleNames.Admin)]
     [SwaggerResponse(204, "NO_CONTENT")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> ChangeRoleAsync(string newRole)
+    public async Task<IActionResult> ChangeRoleAsync([FromRoute] string id, [FromBody] ChangeRoleRequest model)
     {
-        await _userService.ChangeRoleAsync(newRole, User);
+        await _userService.ChangeRoleAsync(id, model);
 
         return NoContent();
     }
@@ -319,33 +316,58 @@ public class UsersController : ControllerBase
     ///     GET /users/authors?limit=3
     ///     
     /// </remarks>
-    [HttpGet("authors")]    
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortDto>))]    
+    [HttpGet("authors")]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<UserShortInfoDto>))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
-    public async Task<IActionResult> GetAuthorsAsync([FromQuery] PagingSortFilterParams model)
+    public async Task<IActionResult> GetAuthorsAsync([FromQuery] PagingSortParams model)
     {
         var result = await _userService.GetAuthorsAsync(model);
 
         return Ok(result);
     }
 
-    // helper methods
-    private string IpAddress()
+
+    /// <summary>
+    /// Retrieves a paginated list of users based on the provided search and filter criteria.
+    /// </summary>
+    /// <param name="pagingSortModel">
+    /// A model containing pagination, sorting, and filtering parameters:
+    /// - **page**: The page number. (Optional; default is 1)
+    /// - **limit**: The maximum number of users to retrieve. (Optional; default is 100)
+    /// - **sort**: The field by which to sort the users ("email" or "role" or "nickname"(default)). (Optional)
+    /// - **order**: The order in which to sort the users ("asc"(default) or "desc"). (Optional)    
+    /// </param>
+    /// <param name="filterModel">
+    /// The search and filter criteria:
+    /// - **roleId**: A specific role ID to sort the user by. (Optional)
+    /// </param>
+    /// <param name="queryModel">
+    /// The search and filter criteria:
+    /// - **users**: Search terms used to filter the users by email or nickname. (Optional)   
+    /// </param>
+    /// <returns>Returns a status of 200 along with a paginated list of users that match the search and filter criteria.</returns>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     GET /users?page=1&amp;limit=10&amp;sort=created&amp;order=desc&amp;roleId=roleId
+    ///     GET /users?page=1&amp;limit=10&amp;users=sample,sample1
+    ///
+    /// **Note**: This endpoint can be accessed by any user. However, the search functionality is available only for authorized users. 
+    /// </remarks>   
+    [HttpGet]
+    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(UsersPaginatedResponse))]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> GetAllAsync(
+        [FromQuery] PagingSortParams pagingSortModel,
+        [FromQuery] UsersFilterParams filterModel,
+        [FromQuery] UsersQueryParams queryModel)
     {
-        string? ipAddressWithPort;
+        var result = await _userService.GetAllPagingAsync(pagingSortModel, filterModel, queryModel, User);
 
-        if (Request.Headers.ContainsKey("X-Forwarded-For"))
-            ipAddressWithPort = Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        else
-            ipAddressWithPort = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString();
-
-        if (ipAddressWithPort != null)
-        {
-            var ipAndPort = ipAddressWithPort.Split(':');
-            return ipAndPort.Length > 1 ? ipAndPort[0] : ipAddressWithPort;
-        }
-
-        return string.Empty;
+        return Ok(result);
     }
 
     private string GenerateVerifyEmailUrl() => $"{ExtractOriginOrDefault()}/signup";
