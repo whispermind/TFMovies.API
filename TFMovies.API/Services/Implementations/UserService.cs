@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Security.Claims;
@@ -11,7 +10,6 @@ using TFMovies.API.Integrations;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
-using TFMovies.API.Repositories.Implementations;
 using TFMovies.API.Repositories.Interfaces;
 using TFMovies.API.Services.Interfaces;
 using TFMovies.API.Utils;
@@ -28,6 +26,8 @@ public class UserService : IUserService
     private readonly IEmailService _emailService;
     private readonly UserActionTokenSettings _actionTokenSettings;
     private readonly IPostLikeRepository _postLikeRepository;
+    private readonly IBackgroundTaskQueue _backgroundTaskQueue;
+
 
     public UserService(
         IUserRepository userRepository,
@@ -37,7 +37,8 @@ public class UserService : IUserService
         IOptions<UserActionTokenSettings> actionTokenSettings,
         IRefreshTokenRepository refreshTokenRepository,
         IEmailService emailService,
-        IPostLikeRepository postLikeRepository)
+        IPostLikeRepository postLikeRepository,
+        IBackgroundTaskQueue backgroundTaskQueue)
 
     {
         _userRepository = userRepository;
@@ -48,16 +49,19 @@ public class UserService : IUserService
         _actionTokenSettings = actionTokenSettings.Value;
         _emailService = emailService;
         _postLikeRepository = postLikeRepository;
+        _backgroundTaskQueue = backgroundTaskQueue;
     }
     public async Task<LoginResponse> LoginAsync(LoginRequest model, string callBackUrl)
     {
-        var userDb = await GetUserOrThrowAsync(email: model.Email);
+        var email = model.Email.ToLower();
+
+        var userDb = await _userRepository.FindByEmailAsync(email);
 
         var isPasswordValid = await _userRepository.CheckPasswordAsync(userDb, model.Password);
 
-        if (!isPasswordValid)
+        if (userDb == null || !isPasswordValid)
         {
-            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.IncorrectPassword);
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.LoginFailed);
         }
 
         if (!userDb.EmailConfirmed)
@@ -236,7 +240,7 @@ public class UserService : IUserService
 
         EnsureSuccess(result);
 
-        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject, null);
+       await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject, null);
     }
 
     public async Task ChangeRoleAsync(string id, ChangeRoleRequest model)
@@ -361,7 +365,10 @@ public class UserService : IUserService
                 throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
         }
 
-        await _emailService.SendEmailAsync(user.Email, emailSubject, emailContent);
+        _backgroundTaskQueue.QueueBackgroundWorkItem(async token =>
+        {
+            await _emailService.SendEmailAsync(user.Email, emailSubject, emailContent);
+        });
     }
 
     private async Task<(string Link, string Duration)> GenerateTokenDetailsAsync(User user, ActionTokenTypeEnum tokenType, string? callBackUrl)
@@ -391,7 +398,7 @@ public class UserService : IUserService
 
     private async Task<UserActionToken> UpsertActionTokenAsync(string userId, ActionTokenTypeEnum tokenType)
     {
-        var token = await GenerateActionTokenAsync();
+        var tokenValue = await GenerateActionTokenAsync();
 
         var created = DateTime.UtcNow;
 
@@ -399,45 +406,34 @@ public class UserService : IUserService
 
         var expires = TimeUtility.AddTime(created, tokenSettings.Unit, tokenSettings.Value);
 
-        var tokenDb = await _actionTokenRepository.FindByUserIdAndTokenTypeAsync(userId, tokenType);
-
-        if (tokenDb == null)
+        var newToken = new UserActionToken
         {
-            tokenDb = new UserActionToken
-            {
-                UserId = userId,
-                Token = token,
-                TokenType = tokenType,
-                CreatedAt = created,
-                ExpiresAt = expires
-            };
+            UserId = userId,
+            Token = tokenValue,
+            TokenType = tokenType,
+            CreatedAt = created,
+            ExpiresAt = expires
+        };
 
-            await _actionTokenRepository.CreateAsync(tokenDb);
-        }
-        else
-        {
-            tokenDb.Token = token;
-            tokenDb.ExpiresAt = expires;
-            tokenDb.CreatedAt = created;
-            tokenDb.IsUsed = false;
+        await _actionTokenRepository.UpsertAsync(newToken);
 
-            await _actionTokenRepository.UpdateAsync(tokenDb);
-        }
-
-        return tokenDb;
+        return newToken;
     }
     private async Task<string> GenerateActionTokenAsync()
     {
-        var token = Guid.NewGuid().ToString();
+        const int maxAttempts = 5;
 
-        var tokenIsUnique = !await _actionTokenRepository.HasTokenAsync(token);
-
-        if (!tokenIsUnique)
+        for (int i = 0; i < maxAttempts; i++)
         {
-            return await GenerateActionTokenAsync();
+            var tokenValue = Guid.NewGuid().ToString();
+            var tokenIsUnique = !await _actionTokenRepository.IsTokenValueExistsAsync(tokenValue);
+            if (tokenIsUnique)
+            {
+                return tokenValue;
+            }
         }
 
-        return token;
+        throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.GenerateUniqueTokenFailed);       
     }
     private TokenDurationSettings GetTokenSettings(ActionTokenTypeEnum tokenType)
     {
@@ -517,12 +513,5 @@ public class UserService : IUserService
         tokenDb.Token = newRefreshToken.Token;
 
         await _refreshTokenRepository.UpdateAsync(tokenDb);
-    }
-
-    private bool IsValidRole(string role)
-    {
-        var validRoles = new List<string> { RoleNames.Admin, RoleNames.User, RoleNames.Author };
-
-        return validRoles.Contains(role);
     }
 }

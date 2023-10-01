@@ -42,7 +42,9 @@ builder.Services.AddScoped<IPostLikeRepository, PostLikeRepository>();
 builder.Services.AddScoped<IPostCommentRepository, PostCommentRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
-builder.Services.AddScoped<IEmailService, SendGridEmailService>();
+builder.Services.AddHostedService<EmailBackgroundService>();
+builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+builder.Services.AddSingleton<IEmailService, SendGridEmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPostService, PostService>();
