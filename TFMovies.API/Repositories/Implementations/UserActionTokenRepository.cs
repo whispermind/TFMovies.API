@@ -11,11 +11,11 @@ public class UserActionTokenRepository : BaseRepository<UserActionToken>, IUserA
     public UserActionTokenRepository(DataContext context) : base(context)
     { }
 
-    public async Task<UserActionToken?> FindByTokenValueAndTypeAsync(string token, ActionTokenTypeEnum tokenType)
+    public async Task<UserActionToken?> FindByTokenValueAndTypeAsync(string tokenValue, ActionTokenTypeEnum tokenType)
     {
         var result = await _entities
              .FirstOrDefaultAsync(item =>
-                 item.Token == token
+                 item.Token == tokenValue
                  && item.TokenType == tokenType);
 
         return result;
@@ -31,11 +31,30 @@ public class UserActionTokenRepository : BaseRepository<UserActionToken>, IUserA
         return result;
     }
 
-    public async Task<bool> HasTokenAsync(string token)
+    public async Task<bool> IsTokenValueExistsAsync(string tokenValue)
     {
         var result = await _entities
-               .AnyAsync(x => x.Token == token);
+               .AnyAsync(x => x.Token == tokenValue);
 
         return result;
+    }
+
+    public async Task UpsertAsync(UserActionToken token)
+    {       
+        var existingToken = await FindByUserIdAndTokenTypeAsync(token.UserId, token.TokenType);
+        
+        if (existingToken == null)
+        {
+            await _entities.AddAsync(token);
+        }
+        else
+        {
+            existingToken.Token = token.Token;
+            existingToken.ExpiresAt = token.ExpiresAt;
+            existingToken.CreatedAt = token.CreatedAt;
+            existingToken.IsUsed = false;           
+        }
+
+        await SaveChangesAsync();
     }
 }

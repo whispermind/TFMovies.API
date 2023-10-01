@@ -5,6 +5,9 @@ public static class ErrorMessages
     //Common
     public const string UnexpectedError = "An unexpected error has occurred. Please try again later.";
     public const string OperationFailed = "Something went wrong. Please try again later.";
+    public const string GenerateUniqueTokenFailed = "Unable to generate a unique action token after multiple attempts.";
+    public const string SearchColumnsNotDefined = "Search Columns doesn't defined in derived repository.";
+    public const string SearchFailedNoValuesProvided = "No search values provided. Please enter a value to proceed with the search.";
 
     //User 
     //Model State -registration
@@ -14,14 +17,12 @@ public static class ErrorMessages
     public const string IncorrectNickName = "{0} must start with an uppercase letter and contain only Latin letters, minimum 2 symbols.";
     public const string IncorrectPasswordComplexity = "The Password must be at least 8 characters long and contain only Latin letters, at least one uppercase letter, one lowercase letter, one number, and one special character like -, _, +, =.";
     //other
-    public const string IncorrectPassword = "Password is incorrect.";
+    public const string LoginFailed = "Login failed. Invalid credentials being provided.";
     public const string UserNotFound = "User not found.";
     public const string UnconfirmedEmail = "Email address has not been confirmed yet. Please check your inbox for the confirmation link.";
     public const string InvalidRole = "Invalid Role specified.";
-    public const string UpdateRoleFailed = "Error updating user role";
-    public const string SearchColumnsNotDefined = "Search Columns doesn't defined in derived repository.";
-    public const string UserMissingRoleError = "The user does not have an assigned role.";
-    public const string SearchFailedNoValuesProvided = "No search values provided. Please enter a value to proceed with the search.";
+    public const string UpdateRoleFailed = "Error updating user role";    
+    public const string UserMissingRoleError = "The user does not have an assigned role.";    
 
     // Files exception
     public const string UploadedFileInvalid = "No file uploaded or the file name is invalid.";
