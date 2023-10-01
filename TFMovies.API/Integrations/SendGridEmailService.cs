@@ -6,8 +6,6 @@ using TFMovies.API.Common.Constants;
 using TFMovies.API.Exceptions;
 using TFMovies.API.Models.Dto;
 using System.Net;
-using TFMovies.API.Services.Implementations;
-using TFMovies.API.Models.Requests;
 
 namespace TFMovies.API.Integrations;
 
@@ -20,13 +18,11 @@ public class SendGridEmailService : IEmailService
     public SendGridEmailService(
         ISendGridClient client,
         IOptions<SendGridSettings> sendGridSettings,
-        ILogger<SendGridEmailService> logger)
-        
+        ILogger<SendGridEmailService> logger)        
     {
         _client = client;
         _logger = logger;
-        _sendGridSettings = sendGridSettings.Value;
-       
+        _sendGridSettings = sendGridSettings.Value;       
     }
     public async Task SendEmailAsync(string toEmail, string subject, string htmlMessage)
     {

@@ -8,7 +8,7 @@ namespace TFMovies.API.Services.Interfaces;
 public interface IPostService
 {
     public Task<PostCreateResponse> CreateAsync(PostCreateRequest model, ClaimsPrincipal currentUserPrincipal);
-    public Task<PostUpdateResponse> UpdateAsync(string id, PostUpdateRequest model);
+    public Task UpdateAsync(string id, PostUpdateRequest model);
     public Task<PostsPaginatedResponse> GetAllAsync(PagingSortParams pagingSortModel, PostsFilterParams filterModel, PostsQueryParams queryModel, ClaimsPrincipal currentUserPrincipal);
     public Task<PostGetByIdResponse> GetByIdAsync(string id, ClaimsPrincipal currentUserPrincipal, int limit);
     public Task<PostAddCommentResponse> AddCommentAsync(string id, PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal);

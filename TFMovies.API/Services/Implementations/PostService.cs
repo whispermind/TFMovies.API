@@ -4,6 +4,7 @@ using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data.Entities;
 using TFMovies.API.Exceptions;
+using TFMovies.API.Mappers;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -47,76 +48,42 @@ public class PostService : IPostService
 
         UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
 
-        var theme = await GetThemeByIdAsync(model.ThemeId);
+        await GetThemeByIdOrThrowAsync(model.ThemeId);
 
-        var post = new Post
-        {
-            UserId = currentUser.Id,
-            ThemeId = theme.Id,
-            Title = model.Title,
-            HtmlContent = model.HtmlContent,
-            CoverImageUrl = model.CoverImageUrl,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+        var newPost = PostMapper.ToCreateEntity(model, currentUser);
 
-        await _postRepository.CreateAsync(post);
+        await _postRepository.CreateAsync(newPost);
 
         var existingTags = await GetOrCreateTagsAsync(model.Tags);
 
         if (existingTags != null)
         {
-            await AddPostTagRelationAsync(post, existingTags);
+            await AddPostTagRelationAsync(newPost, existingTags);
         }
 
-        var response = new PostCreateResponse
+        var response = new PostCreateResponse 
         {
-            Id = post.Id,
-            CoverImageUrl = post.CoverImageUrl,
-            Title = post.Title,
-            HtmlContent = post.HtmlContent,
-            CreatedAt = post.CreatedAt,
-            Author = currentUser.Nickname,
-            Theme = theme.Name,
-            Tags = existingTags?.Select(t => new TagDto { Id = t.Id, Name = t.Name }).ToList() ?? new List<TagDto>()
-        };
+            Id = newPost.Id
+        };  
 
         return response;
     }
 
-    public async Task<PostUpdateResponse> UpdateAsync(string id, PostUpdateRequest model)
+    public async Task UpdateAsync(string id, PostUpdateRequest model)
     {
         var postDb = await GetPostByIdOrThrowAsync(id);
 
         var user = await _userRepository.FindByIdAsync(postDb.UserId);
 
-        var theme = await GetThemeByIdAsync(model.ThemeId);
+        var theme = await GetThemeByIdOrThrowAsync(model.ThemeId);
 
-        postDb.CoverImageUrl = model.CoverImageUrl;
-        postDb.ThemeId = theme.Id;
-        postDb.Title = model.Title;
-        postDb.HtmlContent = model.HtmlContent;
-        postDb.UpdatedAt = DateTime.UtcNow;
+        PostMapper.ToUpdateEntity(postDb, model, theme);
 
         var existingTags = await GetOrCreateTagsAsync(model.Tags);
 
         await UpdatePostTagRelationAsync(postDb, existingTags);
 
-        await _postRepository.UpdateAsync(postDb);
-
-        var response = new PostUpdateResponse
-        {
-            Id = postDb.Id,
-            CoverImageUrl = postDb.CoverImageUrl,
-            Title = postDb.Title,
-            HtmlContent = postDb.HtmlContent,
-            CreatedAt = postDb.CreatedAt,
-            Author = user.Nickname,
-            Theme = theme.Name,
-            Tags = existingTags.Select(t => t.Name).ToList()
-        };
-
-        return response;
+        await _postRepository.UpdateAsync(postDb);       
     }
 
     public async Task<PostsPaginatedResponse> GetAllAsync(PagingSortParams pagingSortModel, PostsFilterParams filterModel, PostsQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
@@ -138,6 +105,13 @@ public class PostService : IPostService
 
         var matchedCommentIds = await ExtractTerms(queryModel.Comments, _postCommentRepository.GetMatchingIdsAsync);
 
+        if ((!string.IsNullOrEmpty(queryModel.Tags) && (matchedTagIds == null || !matchedTagIds.Any())) ||
+            (!string.IsNullOrEmpty(queryModel.Comments) && (matchedCommentIds == null || !matchedCommentIds.Any())))
+        {
+            var emptyResult = GenericMapper.GetEmptyPagedResult<Post>();
+            return PostMapper.ToPostsPaginatedResponse(emptyResult, null);
+        }
+
         var queryDto = new PostsQueryDto
         {
             Query = termsQuery,
@@ -147,7 +121,7 @@ public class PostService : IPostService
 
         var pagedPosts = await _postRepository.GetAllPagingAsync(pagingSortModel, filterModel, queryDto);
 
-        var response = MapToPostsPaginatedResponse(pagedPosts, currentUser);
+        var response = PostMapper.ToPostsPaginatedResponse(pagedPosts, currentUser);
 
         return response;
     }
@@ -313,7 +287,7 @@ public class PostService : IPostService
 
         var pagedPosts = await _postRepository.GetByIdsPagingAsync(likedPostIds, model);
 
-        var response = MapToPostsPaginatedResponse(pagedPosts, currentUser);
+        var response = PostMapper.ToPostsPaginatedResponse(pagedPosts, currentUser);
 
         return response;
     }
@@ -330,32 +304,7 @@ public class PostService : IPostService
         var terms = StringParsingHelper.ParseDelimitedValues(input);
 
         return repositoryFunc != null ? await repositoryFunc(terms) : terms;
-    }
-
-    private PostsPaginatedResponse MapToPostsPaginatedResponse(PagedResult<Post> pagedPosts, User? currentUser)
-    {
-        var data = pagedPosts.Data.Select(p => new PostShortInfoDto
-        {
-            Id = p.Id,
-            CoverImageUrl = p.CoverImageUrl,
-            Title = p.Title,
-            CreatedAt = p.CreatedAt,
-            AuthorId = p.User.Id,
-            Author = p.User.Nickname,
-            IsLiked = (currentUser == null || p.PostLikes == null) ? false : p.PostLikes.Any(pl => pl.UserId == currentUser.Id),
-            LikesCount = p.LikeCount,
-            Tags = GetTagNamesFromPost(p)
-        }).ToList();
-
-        return new PostsPaginatedResponse
-        {
-            Page = pagedPosts.Page,
-            Limit = pagedPosts.Limit,
-            TotalPages = pagedPosts.TotalPages,
-            TotalRecords = pagedPosts.TotalRecords,
-            Data = data
-        };
-    }
+    }   
     
     private async Task<List<Tag>> GetOrCreateTagsAsync(List<string> tagNames)
     {
@@ -395,21 +344,21 @@ public class PostService : IPostService
         await _postTagRepository.CreateRangeAsync(newPostTags);
     }
 
-    private async Task UpdatePostTagRelationAsync(Post post, List<Tag> tags)
+    private async Task UpdatePostTagRelationAsync(Post post, List<Tag> newTags)
     {
         var existingPostTags = await _postTagRepository.FindByPostIdAsync(post.Id) ?? new List<PostTag>();
 
-        if (!tags.Any())
+        if (!newTags.Any())
         {
             await _postTagRepository.DeleteRangeAsync(existingPostTags);
             return;
         }
 
-        var tagNames = tags.Select(t => t.Name).ToList();
+        var tagIds = newTags.Select(t => t.Id).ToList();
 
-        var tagsToRemove = existingPostTags?.Where(pt => pt.Tag != null && !tagNames.Contains(pt.Tag.Name)).ToList();
+        var tagsToRemove = existingPostTags?.Where(pt => !tagIds.Contains(pt.TagId)).ToList();
 
-        var tagsToAdd = tags.Where(t => existingPostTags == null || !existingPostTags.Any(pt => pt.TagId == t.Id))
+        var tagsToAdd = newTags.Where(t => existingPostTags == null || !existingPostTags.Any(pt => pt.TagId == t.Id))
                                     .Select(t => new PostTag { Post = post, Tag = t })
                                     .ToList();
 
@@ -424,7 +373,7 @@ public class PostService : IPostService
         }
     }
 
-    private async Task<Theme> GetThemeByIdAsync(string themeId)
+    private async Task<Theme> GetThemeByIdOrThrowAsync(string themeId)
     {
         var theme = await _themeRepository.GetByIdAsync(themeId);
 

@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Common.Enum;
@@ -515,12 +513,5 @@ public class UserService : IUserService
         tokenDb.Token = newRefreshToken.Token;
 
         await _refreshTokenRepository.UpdateAsync(tokenDb);
-    }
-
-    private bool IsValidRole(string role)
-    {
-        var validRoles = new List<string> { RoleNames.Admin, RoleNames.User, RoleNames.Author };
-
-        return validRoles.Contains(role);
     }
 }

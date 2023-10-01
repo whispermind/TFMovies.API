@@ -49,7 +49,7 @@ public class PostsController : ControllerBase
     {
         var result = await _postService.CreateAsync(model, User);
 
-        return Ok(result);
+        return CreatedAtRoute("GetPostById", new { id = result.Id, limit = 7 }, result);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public class PostsController : ControllerBase
     /// </summary>
     /// <param name="id">The identifier of the post to be updated.</param>
     /// <param name="model">An object containing the updated post details.</param>
-    /// <returns>Returns status 200 along with the details of the updated post if the operation is successful.</returns>
+    /// <returns>Returns status 204 if the operation is successful.</returns>
     /// <remarks>
     /// Example of a PUT request to update a post:
     ///
@@ -74,15 +74,15 @@ public class PostsController : ControllerBase
     /// </remarks>
     [HttpPut("{id}")]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author)]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostUpdateResponse))]
+    [SwaggerResponse(204, "NO_CONTENT")]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     public async Task<IActionResult> UpdateAsync(string id, [FromBody] PostUpdateRequest model)
     {
-        var result = await _postService.UpdateAsync(id, model);
+        await _postService.UpdateAsync(id, model);
 
-        return Ok(result);
+        return NoContent();
     }
 
     /// <summary>
@@ -147,7 +147,7 @@ public class PostsController : ControllerBase
     ///
     /// **Note**: You must be authenticated as an Admin, Author, or User to use this endpoint.
     /// </remarks>
-    [HttpGet("{id}")]
+    [HttpGet("{id}", Name = "GetPostById")]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
     [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostGetByIdResponse))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
