@@ -265,10 +265,8 @@ public class PostService : IPostService
     }
 
     public async Task<IEnumerable<TagDto>> GetTagsAsync(PagingSortParams model)
-    {
-        var sortOption = (model.Sort ?? string.Empty).ToLower();
-
-        var tagsDb = await _tagRepository.GetTagsAsync(model.Limit, model.Sort, model.Order);
+    {       
+        var tagsDb = await _tagRepository.GetTagsAsync(model);
 
         return tagsDb?.Select(t => new TagDto
         {
