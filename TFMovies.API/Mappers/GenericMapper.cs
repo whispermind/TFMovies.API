@@ -15,4 +15,22 @@ public static class GenericMapper
             Data = new List<T>()
         };
     }
+
+    public static PagedResult<TDto> ToPaginatedResponse<TEntity, TDto>(
+        PagedResult<TEntity> pagedData,
+        Func<TEntity, TDto> transformFunc)
+    {
+        var data = pagedData.Data.Select(transformFunc).ToList();
+
+        var result = new PagedResult<TDto>
+        {
+            Page = pagedData.Page,
+            Limit = pagedData.Limit,
+            TotalPages = pagedData.TotalPages,
+            TotalRecords = pagedData.TotalRecords,
+            Data = data
+        };
+
+        return result;        
+    }
 }

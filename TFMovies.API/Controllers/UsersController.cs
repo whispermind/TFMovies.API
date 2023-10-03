@@ -6,6 +6,7 @@ using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
+using TFMovies.API.Services.Implementations;
 using TFMovies.API.Services.Interfaces;
 
 namespace TFMovies.API.Controllers;
@@ -57,17 +58,17 @@ public class UsersController : ControllerBase
     /// <summary>
     /// User logout.
     /// </summary>
-    /// <param name="model">Access and Refresh Tokens.</param>
+    /// <param name="model">Refresh Tokens.</param>
     /// <returns>Status 200 if successful.</returns>
     /// <remarks>
     /// Example:
     ///
     ///     POST /users/logout
-    ///     {
-    ///       "accessToken": "current_access_token",
+    ///     {       
     ///       "refreshToken": "current_refresh_token"
     ///     }
-    ///     
+    /// 
+    /// Note: This endpoint can be accessed by authorized users.
     /// </remarks>
     [HttpPost("logout")]
     [Authorize]
@@ -356,7 +357,7 @@ public class UsersController : ControllerBase
     /// </remarks>   
     [HttpGet]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(UsersPaginatedResponse))]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PagedResult<UserShortInfoDto>))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
@@ -370,6 +371,31 @@ public class UsersController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Delete user by Id.
+    /// </summary>
+    /// <param name="id">Id of the user to delete.</param>
+    /// <returns>Status 204 if successful.</returns>
+    /// <remarks>
+    /// Example:
+    /// 
+    ///     DELETE /user/{id}
+    /// 
+    /// Note:This endpoint can be accessed by Admin only.
+    /// </remarks>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = RoleNames.Admin)]
+    [SwaggerResponse(204, "NO_CONTENT")]    
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> DeleteAsync(string id)
+    {
+        await _userService.SoftDeleteAsync(id);
+
+        return NoContent();
+    }
+
+    //helpers
     private string GenerateVerifyEmailUrl() => $"{ExtractOriginOrDefault()}/signup";
     private string GenerateValidateResetTokenUrl() => $"{ExtractOriginOrDefault()}/auth/passrecovery";
 

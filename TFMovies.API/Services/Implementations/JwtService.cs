@@ -28,10 +28,8 @@ public class JwtService : IJwtService
             new Claim("sub", user.Id),
             new Claim("email", user.Email)
         };
-
        
-        claims.Add(new Claim(ClaimsIdentity.DefaultRoleClaimType, userRole));
-        
+        claims.Add(new Claim(ClaimsIdentity.DefaultRoleClaimType, userRole));        
 
         var token = CreateJwtToken(claims, _jwtSettings.ValidAudience, expiryAt);
 

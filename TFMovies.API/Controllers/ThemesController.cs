@@ -35,7 +35,7 @@ public class ThemesController : ControllerBase
     ///        "name": "NewThemeName"
     ///     }
     /// 
-    /// Note: Accessible only to users who are authenticated and hold the 'SuperAdmin' role.
+    /// Note: Accessible only to users who are authenticated and hold the 'Admin' role.
     /// </remarks>
     [HttpPost]
     [SwaggerOperation(Tags = new[] { "Helpers" })]
@@ -88,7 +88,7 @@ public class ThemesController : ControllerBase
     ///        "newName": "NewThemeName"
     ///     }
     /// 
-    /// Note: Accessible only to users who are authenticated and hold the 'SuperAdmin' role.
+    /// Note: Accessible only to users who are authenticated and hold the 'Admin' role.
     /// </remarks>
     [HttpPut]
     [SwaggerOperation(Tags = new[] { "Helpers" })]
@@ -113,7 +113,7 @@ public class ThemesController : ControllerBase
     /// 
     ///     DELETE /themes/ThemeName
     /// 
-    /// Note: Accessible only to users who are authenticated and hold the 'SuperAdmin' role.
+    /// Note: Accessible only to users who are authenticated and hold the 'Admin' role.
     /// </remarks>
     [HttpDelete("{id}")]
     [SwaggerOperation(Tags = new[] { "Helpers" })]

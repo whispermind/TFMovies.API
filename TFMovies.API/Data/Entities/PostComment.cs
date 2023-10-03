@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using TFMovies.API.Common.Constants;
 
 namespace TFMovies.API.Data.Entities;
 
@@ -16,8 +17,5 @@ public class PostComment : BaseModel
 
     public Post Post { get; set; }
 
-    public User User { get; set; }
-
-    [NotMapped]
-    public string Author => User.Nickname;
+    public User User { get; set; }   
 }

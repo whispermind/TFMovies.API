@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data;
 using TFMovies.API.Data.Entities;
+using TFMovies.API.Models.Requests;
 using TFMovies.API.Repositories.Interfaces;
 
 namespace TFMovies.API.Repositories.Implementations;
@@ -31,25 +32,25 @@ public class TagRepository : BaseRepository<Tag>, ITagRepository
         return result;
     }
 
-    public async Task<IEnumerable<Tag>> GetTagsAsync(int? limit, string? sort, string? order)
+    public async Task<IEnumerable<Tag>> GetTagsAsync(PagingSortParams model)
     {
-        var actualLimit = limit ?? 10;
+        var actualLimit = model.Limit ?? LimitValues.MaxValue;
 
-        IQueryable<Tag> query = _entities; 
+        IQueryable<Tag> query = Query();
+
+        query = query.Where(t => t.PostTags.Any());
 
         Expression<Func<Tag, object>> sortSelector;
         
-        switch (sort)
+        switch (model.Sort)
         {
-            case SortOptions.Rated:
-                sortSelector = t => t.PostTags.Count();
-                break;
+            case SortOptions.Rated:                
             default:
-                sortSelector = t => t.Name;
+                sortSelector = t => t.PostTags.Count();
                 break;
         }
 
-        if (string.Equals(order, "asc", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(model.Order, "asc", StringComparison.OrdinalIgnoreCase))
         {
             query = query.OrderBy(sortSelector);
         }

@@ -120,7 +120,7 @@ public class PostsController : ControllerBase
     /// </remarks>   
     [HttpGet]
     [AllowAnonymous]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PostsPaginatedResponse))]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PagedResult<PostShortInfoDto>))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
@@ -258,7 +258,7 @@ public class PostsController : ControllerBase
     /// </remarks>
     [HttpGet("liked-by/me")]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(IEnumerable<PostShortInfoDto>))]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PagedResult<PostShortInfoDto>))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
