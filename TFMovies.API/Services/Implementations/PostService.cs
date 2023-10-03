@@ -86,7 +86,7 @@ public class PostService : IPostService
         await _postRepository.UpdateAsync(postDb);       
     }
 
-    public async Task<PostsPaginatedResponse> GetAllAsync(PagingSortParams pagingSortModel, PostsFilterParams filterModel, PostsQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PagedResult<PostShortInfoDto>> GetAllAsync(PagingSortParams pagingSortModel, PostsFilterParams filterModel, PostsQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
@@ -108,8 +108,8 @@ public class PostService : IPostService
         if ((!string.IsNullOrEmpty(queryModel.Tags) && (matchedTagIds == null || !matchedTagIds.Any())) ||
             (!string.IsNullOrEmpty(queryModel.Comments) && (matchedCommentIds == null || !matchedCommentIds.Any())))
         {
-            var emptyResult = GenericMapper.GetEmptyPagedResult<Post>();
-            return PostMapper.ToPostsPaginatedResponse(emptyResult, null);
+            var emptyResult = GenericMapper.GetEmptyPagedResult<PostShortInfoDto>();
+            return emptyResult;
         }
 
         var queryDto = new PostsQueryDto
@@ -121,7 +121,7 @@ public class PostService : IPostService
 
         var pagedPosts = await _postRepository.GetAllPagingAsync(pagingSortModel, filterModel, queryDto);
 
-        var response = PostMapper.ToPostsPaginatedResponse(pagedPosts, currentUser);
+        var response = GenericMapper.ToPaginatedResponse(pagedPosts, post => PostMapper.ToPostShortInfoDto(post, currentUser));        
 
         return response;
     }
@@ -141,7 +141,7 @@ public class PostService : IPostService
 
         //Author's other posts
 
-        var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, currentUser.Id, limit);
+        var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, post.UserId, limit);
 
         var otherPostsDtos = otherPostsByAuthor?.Select(p => new PostByAuthorDto
         {
@@ -155,7 +155,7 @@ public class PostService : IPostService
         var comments = await _postCommentRepository.GetAllByPostIdAsync(id);
 
         var commentDetails = comments?.Select(pc => new CommentDetailDto
-        {
+        {            
             Author = pc.Author,
             Content = pc.Content,
             CreatedAt = pc.CreatedAt
@@ -275,7 +275,7 @@ public class PostService : IPostService
         }) ?? Enumerable.Empty<TagDto>();
     }
 
-    public async Task<PostsPaginatedResponse> GetUserFavoritePostAsync(PagingSortParams model, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PagedResult<PostShortInfoDto>> GetUserFavoritePostAsync(PagingSortParams model, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
@@ -284,8 +284,8 @@ public class PostService : IPostService
         var likedPostIds = await _postLikeRepository.GetLikedPostIdsByUserIdAsync(currentUser.Id);
 
         var pagedPosts = await _postRepository.GetByIdsPagingAsync(likedPostIds, model);
-
-        var response = PostMapper.ToPostsPaginatedResponse(pagedPosts, currentUser);
+        
+        var response = GenericMapper.ToPaginatedResponse(pagedPosts, post => PostMapper.ToPostShortInfoDto(post, currentUser));
 
         return response;
     }

@@ -34,6 +34,9 @@ public static class ExceptionMiddlewareExtensions
                         case KeyNotFoundException:
                             statusCode = HttpStatusCode.NotFound;
                             break;
+                        case InvalidOperationException:
+                            statusCode = HttpStatusCode.BadRequest;
+                            break;
                         default:
                             statusCode = HttpStatusCode.InternalServerError;
                             errorMessage = ErrorMessages.UnexpectedError;

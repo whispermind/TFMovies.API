@@ -9,13 +9,16 @@ public interface IUserRepository
 {
     //CRUD User
     public Task<IdentityResult> CreateAsync(User user, string password);
-    public Task<User> FindByIdAsync(string userId);
-    public Task<User> FindByEmailAsync(string email);
+    public IQueryable<User> QueryActiveUsersOnly();
+    public IQueryable<User> QueryAllUsers();
+    public Task<User?> FindByIdAsync(string userId);
+    public Task<User?> FindByEmailAsync(string email);
     public Task<IdentityResult> UpdateAsync(User user);
     public Task<IdentityResult> DeleteAsync(User user);
     public Task<IEnumerable<User>> GetUsersByIdsAsync(IEnumerable<string> userIds);
     public Task<IEnumerable<User>> GetAllAsync();
     public Task<PagedResult<UserRoleDto>> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryDto queryDto);
+    public Task<IdentityResult> SoftDeleteAsync(User user);   
 
     //Manage Password
     public Task<bool> CheckPasswordAsync(User user, string password);

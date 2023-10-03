@@ -28,19 +28,39 @@ public class UserRepository : IUserRepository
     {
         return await _userManager.CreateAsync(user, password);
     }
-    
-    public async Task<User> FindByIdAsync(string userId)
+
+    public IQueryable<User> QueryAllUsers()
     {
-        return await _userManager.FindByIdAsync(userId);
+        return _userManager.Users.
+            AsNoTracking();    
+    }
+    public IQueryable<User> QueryActiveUsersOnly()
+    {
+        return _userManager.Users
+            .Where(u => !u.IsDeleted)
+            .AsNoTracking();
     }
 
-    public async Task<User> FindByEmailAsync(string email)
+    public async Task<User?> FindByIdAsync(string userId)
     {
-        return await _userManager.FindByEmailAsync(email);
+        var user = await _userManager.FindByIdAsync(userId);
+        return user?.IsDeleted == true ? null : user;
+    }
+
+    public async Task<User?> FindByEmailAsync(string email)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        return user?.IsDeleted == true ? null : user;
     }
 
     public async Task<IdentityResult> UpdateAsync(User user)
     {
+        return await _userManager.UpdateAsync(user);
+    }
+
+    public async Task<IdentityResult> SoftDeleteAsync(User user)
+    {
+        user.IsDeleted = true;
         return await _userManager.UpdateAsync(user);
     }
 
@@ -50,31 +70,25 @@ public class UserRepository : IUserRepository
     }
 
     public async Task<IEnumerable<User>> GetUsersByIdsAsync(IEnumerable<string> userIds)
-    {
-        var users = new List<User>();
+    {        
+        var users = await QueryAllUsers()
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync();
 
-        foreach (var userId in userIds)
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            
-            if (user != null)
-            {
-                users.Add(user);
-            }
-        }
         return users;
     }
 
     public async Task<IEnumerable<User>> GetAllAsync()
     {
-        var users = await _userManager.Users.ToListAsync();
+        var users = await QueryActiveUsersOnly()            
+            .ToListAsync();
 
         return users;
     }
 
     public async Task<PagedResult<UserRoleDto>> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryDto queryDto)
     {
-        var query = _userManager.Users;
+        var query = QueryActiveUsersOnly();
 
         // Filter by Role
         if (!string.IsNullOrEmpty(filterModel.RoleId))
@@ -137,7 +151,7 @@ public class UserRepository : IUserRepository
     }
 
     public async Task<IEnumerable<string>> GetRolesAsync(User user)
-    {
+    {        
         return await _userManager.GetRolesAsync(user);
     }
 
@@ -152,7 +166,7 @@ public class UserRepository : IUserRepository
     }
 
     public async Task<RoleDto?> GetUserRoleDetailsAsync(User user)
-    {
+    {        
         var roleId = await _context.UserRoles
             .Where(ur => ur.UserId == user.Id)
             .Select(ur => ur.RoleId)
@@ -169,5 +183,5 @@ public class UserRepository : IUserRepository
             .SingleOrDefaultAsync();
 
         return role;
-    }
+    }    
 }
