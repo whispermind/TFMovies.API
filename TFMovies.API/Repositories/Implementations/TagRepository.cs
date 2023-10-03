@@ -34,7 +34,7 @@ public class TagRepository : BaseRepository<Tag>, ITagRepository
 
     public async Task<IEnumerable<Tag>> GetTagsAsync(PagingSortParams model)
     {
-        var actualLimit = model.Limit ?? 5;
+        var actualLimit = model.Limit ?? LimitValues.MaxValue;
 
         IQueryable<Tag> query = Query();
 

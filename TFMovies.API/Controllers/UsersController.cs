@@ -58,17 +58,17 @@ public class UsersController : ControllerBase
     /// <summary>
     /// User logout.
     /// </summary>
-    /// <param name="model">Access and Refresh Tokens.</param>
+    /// <param name="model">Refresh Tokens.</param>
     /// <returns>Status 200 if successful.</returns>
     /// <remarks>
     /// Example:
     ///
     ///     POST /users/logout
-    ///     {
-    ///       "accessToken": "current_access_token",
+    ///     {       
     ///       "refreshToken": "current_refresh_token"
     ///     }
-    ///     
+    /// 
+    /// Note: This endpoint can be accessed by authorized users.
     /// </remarks>
     [HttpPost("logout")]
     [Authorize]
@@ -357,7 +357,7 @@ public class UsersController : ControllerBase
     /// </remarks>   
     [HttpGet]
     [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author + "," + RoleNames.User)]
-    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(UsersPaginatedResponse))]
+    [SwaggerResponse(200, "REQUEST_SUCCESSFULL", typeof(PagedResult<UserShortInfoDto>))]
     [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
     [SwaggerResponse(401, "UNAUTHORIZED")]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]

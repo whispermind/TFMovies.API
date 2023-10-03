@@ -7,7 +7,7 @@ using TFMovies.API.Models.Responses;
 
 namespace TFMovies.API.Mappers;
 
-public class PostMapper
+public static class PostMapper
 {
     public static PostShortInfoDto ToPostShortInfoDto(Post post, User? currentUser)
     {
@@ -50,5 +50,57 @@ public class PostMapper
         postDb.Title = requestModel.Title;
         postDb.HtmlContent = requestModel.HtmlContent;
         postDb.UpdatedAt = DateTime.UtcNow;
-    }    
+    }
+
+    public static PostsQueryDto ToPostsQueryDto(IEnumerable<string> termsQuery, IEnumerable<string> matchedTagIds, IEnumerable<string> matchedCommentIds)
+    {
+        var result =  new PostsQueryDto
+        {
+            Query = termsQuery,
+            MatchingTagIdsQuery = matchedTagIds,
+            MatchingCommentIdsQuery = matchedCommentIds
+        };
+
+        return result;
+    }
+    public static PostByAuthorDto ToPostByAuthorDto(Post post)
+    {
+        var result = new PostByAuthorDto
+        {
+            Id = post.Id,
+            Title = post.Title,
+            CreatedAt = post.CreatedAt,
+            Tags = post.ToTagDtos()
+        };
+
+        return result;
+    }
+
+    public static PostGetByIdResponse ToPostGetByIdResponse(
+        Post post, 
+        User? currentUser,
+        ThemeDto theme,
+        IEnumerable<PostByAuthorDto>? otherPostsDtos,
+        IEnumerable<CommentDetailDto>? commentDetails)
+    {
+        var result = new PostGetByIdResponse
+        {
+            Id = post.Id,
+            CoverImageUrl = post.CoverImageUrl,
+            Title = post.Title,
+            HtmlContent = post.HtmlContent,
+            CreatedAt = post.CreatedAt,
+            AuthorId = post.UserId,
+            Author = post.User.Nickname,
+            IsLiked = currentUser != null && post.PostLikes != null && post.PostLikes.Any(pl => pl.UserId == currentUser.Id),
+            LikesCount = post.LikeCount,
+            CommentsCount = post.PostComments?.Count ?? 0,
+            Theme = theme,
+            Tags = post.ToTagDtos(),
+            Comments = commentDetails,
+            PostsByAuthor = otherPostsDtos
+        };
+
+        return result;
+    }
 }

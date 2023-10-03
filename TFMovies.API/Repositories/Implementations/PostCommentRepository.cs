@@ -12,8 +12,9 @@ public class PostCommentRepository : BaseRepository<PostComment>, IPostCommentRe
     { }
     public async Task<IEnumerable<PostComment>> GetAllByPostIdAsync(string postId)
     {
-        var result = await _entities
+        var result = await Query()
             .Where(e => e.PostId == postId)
+            .Include(e => e.User)
             .OrderByDescending(e => e.CreatedAt)
             .ToListAsync();
 

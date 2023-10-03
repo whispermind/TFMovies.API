@@ -17,18 +17,5 @@ public class PostComment : BaseModel
 
     public Post Post { get; set; }
 
-    public User User { get; set; }
-
-    [NotMapped]
-    public string Author
-    {
-        get
-        {
-            if (User == null || User.IsDeleted)
-            {
-                return UserConstants.DeletedUserName;
-            }                
-            return User.Nickname;
-        }
-    }
+    public User User { get; set; }   
 }

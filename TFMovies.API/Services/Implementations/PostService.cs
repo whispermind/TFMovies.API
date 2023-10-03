@@ -112,12 +112,7 @@ public class PostService : IPostService
             return emptyResult;
         }
 
-        var queryDto = new PostsQueryDto
-        {
-            Query = termsQuery,
-            MatchingTagIdsQuery = matchedTagIds,
-            MatchingCommentIdsQuery = matchedCommentIds
-        };
+        var queryDto = PostMapper.ToPostsQueryDto(termsQuery, matchedTagIds, matchedCommentIds);
 
         var pagedPosts = await _postRepository.GetAllPagingAsync(pagingSortModel, filterModel, queryDto);
 
@@ -143,72 +138,37 @@ public class PostService : IPostService
 
         var otherPostsByAuthor = await _postRepository.GetOthersAsync(id, post.UserId, limit);
 
-        var otherPostsDtos = otherPostsByAuthor?.Select(p => new PostByAuthorDto
-        {
-            Id = p.Id,
-            Title = p.Title,
-            CreatedAt = p.CreatedAt,
-            Tags = p.PostTags.Select(pt => new TagDto { Id = pt.Tag.Id, Name = pt.Tag.Name }).ToList()
-        });
+        var otherPostsDtos = otherPostsByAuthor?.Select(p => PostMapper.ToPostByAuthorDto(p)).ToList();
 
         //comments
         var comments = await _postCommentRepository.GetAllByPostIdAsync(id);
 
-        var commentDetails = comments?.Select(pc => new CommentDetailDto
-        {            
-            Author = pc.Author,
-            Content = pc.Content,
-            CreatedAt = pc.CreatedAt
-        }).ToList();
+        var commentDetails = comments?.Select(c => PostCommentMapper.ToCommentDetailDto(c)).ToList();
 
-        var themeDto = new ThemeDto { Id = post.ThemeId, Name = post.Theme.Name };
+        //theme
+        var themeDto = ThemeMapper.ToThemeDto(post);
 
-        var response = new PostGetByIdResponse
-        {
-            Id = post.Id,
-            CoverImageUrl = post.CoverImageUrl,
-            Title = post.Title,
-            HtmlContent = post.HtmlContent,
-            CreatedAt = post.CreatedAt,
-            AuthorId = post.UserId,
-            Author = post.User.Nickname,
-            IsLiked = (currentUser == null || post.PostLikes == null) ? false : post.PostLikes.Any(pl => pl.UserId == currentUser.Id),
-            LikesCount = post.LikeCount,
-            CommentsCount = post.PostComments?.Count ?? 0,
-            Theme = themeDto,
-            Tags = GetTagNamesFromPost(post),
-            Comments = commentDetails,
-            PostsByAuthor = otherPostsDtos
-        };
+        //map the response
+        var response = PostMapper.ToPostGetByIdResponse(post, currentUser, themeDto, otherPostsDtos, commentDetails);
 
         return response;
     }
 
     public async Task<PostAddCommentResponse> AddCommentAsync(string id, PostAddCommentRequest model, ClaimsPrincipal currentUserPrincipal)
     {
-        var postDb = await GetPostByIdOrThrowAsync(id);
+        await GetPostByIdOrThrowAsync(id);
 
         var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
         UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
 
-        var newComment = new PostComment
-        {
-            PostId = id,
-            UserId = currentUser.Id,
-            Content = model.Content,
-            CreatedAt = DateTime.UtcNow
-        };
+        var newComment = PostCommentMapper.ToCreateEntity(id, model, currentUser);
 
         await _postCommentRepository.CreateAsync(newComment);
 
-        return new PostAddCommentResponse
-        {
-            PostId = newComment.PostId,
-            Content = newComment.Content,
-            CreatedAt = newComment.CreatedAt,
-            Author = newComment.Author
-        };
+        var response = PostCommentMapper.ToPostAddCommentResponse(newComment);
+
+        return response;
     }
 
     public async Task AddLikeAsync(string id, ClaimsPrincipal currentUserPrincipal)
@@ -226,11 +186,7 @@ public class PostService : IPostService
 
         var post = await GetPostByIdOrThrowAsync(id);
 
-        var newPostLike = new PostLike
-        {
-            PostId = id,
-            UserId = currentUser.Id
-        };
+        var newPostLike = PostLikeMapper.ToCreateEntity(id, currentUser);
 
         await _postLikeRepository.CreateAsync(newPostLike);
 
@@ -266,13 +222,11 @@ public class PostService : IPostService
 
     public async Task<IEnumerable<TagDto>> GetTagsAsync(PagingSortParams model)
     {       
-        var tagsDb = await _tagRepository.GetTagsAsync(model);
+        var tagsDb = await _tagRepository.GetTagsAsync(model);        
 
-        return tagsDb?.Select(t => new TagDto
-        {
-            Id = t.Id,
-            Name = t.Name
-        }) ?? Enumerable.Empty<TagDto>();
+        var response = tagsDb?.Select(t => TagMapper.ToTagDto(t)).ToList() ?? Enumerable.Empty<TagDto>();        
+
+        return response;
     }
 
     public async Task<PagedResult<PostShortInfoDto>> GetUserFavoritePostAsync(PagingSortParams model, ClaimsPrincipal currentUserPrincipal)
@@ -306,7 +260,7 @@ public class PostService : IPostService
     
     private async Task<List<Tag>> GetOrCreateTagsAsync(List<string> tagNames)
     {
-        CleanAndDistinctTags(tagNames);
+        tagNames = CleanAndDistinctTags(tagNames);
 
         var existingTags = new List<Tag>();
 
@@ -332,7 +286,11 @@ public class PostService : IPostService
 
     private static List<string> CleanAndDistinctTags(List<string> tagNames)
     {
-        return tagNames.Where(tn => !string.IsNullOrWhiteSpace(tn)).Distinct().ToList();
+        return tagNames
+        .Where(tn => !string.IsNullOrWhiteSpace(tn))
+        .Select(tn => tn.ToLower())
+        .Distinct()
+        .ToList();
     }
 
     private async Task AddPostTagRelationAsync(Post post, List<Tag> tags)
@@ -393,13 +351,4 @@ public class PostService : IPostService
         }
         return post;
     }
-    
-    private static IEnumerable<TagDto> GetTagNamesFromPost(Post post)
-    {
-        return post.PostTags.Select(pt => new TagDto
-        {
-            Id = pt.Tag.Id,
-            Name = pt.Tag.Name
-        }).ToList() ?? Enumerable.Empty<TagDto>();
-    }   
 }
