@@ -1,4 +1,5 @@
-﻿using TFMovies.API.Data.Entities;
+﻿using TFMovies.API.Common.Constants;
+using TFMovies.API.Data.Entities;
 using TFMovies.API.Extensions;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
@@ -8,28 +9,19 @@ namespace TFMovies.API.Mappers;
 
 public class PostMapper
 {
-    public static PostsPaginatedResponse ToPostsPaginatedResponse(PagedResult<Post> pagedPosts, User? currentUser)
+    public static PostShortInfoDto ToPostShortInfoDto(Post post, User? currentUser)
     {
-        var data = pagedPosts.Data.Select(p => new PostShortInfoDto
+        var result = new PostShortInfoDto
         {
-            Id = p.Id,
-            CoverImageUrl = p.CoverImageUrl,
-            Title = p.Title,
-            CreatedAt = p.CreatedAt,
-            AuthorId = p.User.Id,
-            Author = p.User.Nickname,
-            IsLiked = (currentUser == null || p.PostLikes == null) ? false : p.PostLikes.Any(pl => pl.UserId == currentUser.Id),
-            LikesCount = p.LikeCount,
-            Tags = p.ToTagDtos()
-        }).ToList();
-
-        var result = new PostsPaginatedResponse
-        {
-            Page = pagedPosts.Page,
-            Limit = pagedPosts.Limit,
-            TotalPages = pagedPosts.TotalPages,
-            TotalRecords = pagedPosts.TotalRecords,
-            Data = data
+            Id = post.Id,
+            CoverImageUrl = post.CoverImageUrl,
+            Title = post.Title,
+            CreatedAt = post.CreatedAt,
+            AuthorId = post.User.Id,
+            Author = post.User.IsDeleted ? UserConstants.DeletedUserName : post.User.Nickname,
+            IsLiked = currentUser != null && post.PostLikes != null && post.PostLikes.Any(pl => pl.UserId == currentUser.Id),
+            LikesCount = post.LikeCount,
+            Tags = post.ToTagDtos()
         };
 
         return result;

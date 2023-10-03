@@ -7,6 +7,7 @@ using TFMovies.API.Common.Enum;
 using TFMovies.API.Data.Entities;
 using TFMovies.API.Exceptions;
 using TFMovies.API.Integrations;
+using TFMovies.API.Mappers;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
@@ -78,37 +79,32 @@ public class UserService : IUserService
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.UserMissingRoleError);
         }
 
-        var accessToken = _jwtService.GenerateAccessToken(userDb, roleDetails.Name);
+        var accessTokenVal = _jwtService.GenerateAccessToken(userDb, roleDetails.Name);
 
         var refreshToken = await GenerateUniqueRefreshToken();
 
-        refreshToken.UserId = userDb.Id;        
+        refreshToken.UserId = userDb.Id;
 
         await _refreshTokenRepository.CreateAsync(refreshToken);
 
-        return new LoginResponse
-        {
-            CurrentUser = new UserShortInfoDto
-            {
-                Id = userDb.Id,
-                Nickname = userDb.Nickname,
-                Email = userDb.Email,
-                Role = roleDetails
-            },
-            AccessToken = accessToken,
-            RefreshToken = refreshToken.Token
-        };
+        var userShortInfo = UserMapper.ToUserShortInfoDto(userDb, roleDetails);
+
+        var response = UserMapper.ToLoginResponse(userShortInfo, accessTokenVal, refreshToken.Token);
+
+        return response;        
     }
 
     public async Task LogoutAsync(LogoutRequest model)
     {
         var tokenDb = await _refreshTokenRepository.FindByTokenAsync(model.RefreshToken);
 
-        if (tokenDb != null)
+        if (tokenDb == null)
         {
-            tokenDb.RevokedAt = DateTime.UtcNow;
-            await _refreshTokenRepository.SaveChangesAsync();
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.InvalidToken);
         }
+
+        tokenDb.RevokedAt = DateTime.UtcNow;
+        await _refreshTokenRepository.SaveChangesAsync();
     }
 
     public async Task<JwtTokensResponse> RefreshJwtTokens(RefreshTokenRequest model)
@@ -124,17 +120,13 @@ public class UserService : IUserService
             userRole = "Undefined";
         }
 
-        var newAccessToken = _jwtService.GenerateAccessToken(userDb, userRole);
+        var newAccessTokenVal = _jwtService.GenerateAccessToken(userDb, userRole);
 
         var newRefreshToken = await GenerateUniqueRefreshToken();
 
         await UpdateTokenDbWithNewRefreshToken(tokenDb, newRefreshToken);
 
-        return new JwtTokensResponse
-        {
-            AccessToken = newAccessToken,
-            RefreshToken = newRefreshToken.Token
-        };
+        return UserMapper.ToJwtTokensResponse(newAccessTokenVal, newRefreshToken.Token);
     }
 
     public async Task RegisterAsync(RegisterRequest model, string callBackUrl)
@@ -143,12 +135,7 @@ public class UserService : IUserService
 
         var email = model.Email.ToLower();
 
-        var newUser = new User
-        {
-            UserName = email,
-            Email = email,
-            Nickname = model.Nickname
-        };
+        var newUser = UserMapper.ToCreateEntity(email, model.Nickname);
 
         var result = await _userRepository.CreateAsync(newUser, model.Password);
 
@@ -195,7 +182,7 @@ public class UserService : IUserService
 
     public async Task SendActivationEmailAsync(EmailActivateRequest model, string callBackUrl)
     {
-        var userDb = await GetUserOrThrowAsync(model.Email);
+        var userDb = await GetUserOrThrowAsync(email: model.Email);
 
         await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl);
     }
@@ -270,21 +257,24 @@ public class UserService : IUserService
     {           
         var topUsersByPostLikeCounts = await _postLikeRepository.GetUserIdsByPostLikeCountsAsync(model.Limit, model.Order);
 
-        var userIds = topUsersByPostLikeCounts.Select(a => a.AuthorId).ToList();
+        var userIdsOrdered = topUsersByPostLikeCounts.Select(a => a.AuthorId).ToList();
 
-        var users = await _userRepository.GetUsersByIdsAsync(userIds);
-        
-        var result = users?.Select(a => new UserShortInfoDto
-        {
-            Id = a.Id,
-            Nickname = a.Nickname,
-            Email = a.Email
-        }) ?? Enumerable.Empty<UserShortInfoDto>();
+        var usersUnordered = await _userRepository.GetUsersByIdsAsync(userIdsOrdered);
+
+        var usersOrdered = userIdsOrdered
+           .Join(usersUnordered,
+                 id => id,
+                 user => user.Id,
+                 (id, user) => user)
+           .ToList();
+
+        var result = usersOrdered?
+            .Select(user => UserMapper.ToUserShortInfoDto(user, null)) ?? Enumerable.Empty<UserShortInfoDto>();
 
         return result;
     }
 
-    public async Task<UsersPaginatedResponse> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
+    public async Task<PagedResult<UserShortInfoDto>> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryParams queryModel, ClaimsPrincipal currentUserPrincipal)
     {
         var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
 
@@ -301,10 +291,7 @@ public class UserService : IUserService
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.SearchFailedNoValuesProvided);
         }
 
-        var queryDto = new UsersQueryDto
-        {
-            Query = termsQuery
-        };
+        var queryDto = UserMapper.ToQueryDto(termsQuery);       
 
         if (string.IsNullOrEmpty(pagingSortModel.Order))
         {
@@ -313,32 +300,23 @@ public class UserService : IUserService
 
         var pagedUsers = await _userRepository.GetAllPagingAsync(pagingSortModel, filterModel, queryDto);
 
-        var response = MapToUsersPaginatedResponse(pagedUsers);
+        var response = GenericMapper.ToPaginatedResponse(pagedUsers, ur => UserMapper.ToUserShortInfoDto(ur.User, ur.Role));
 
         return response;
     }
 
-    //helpers
-    private UsersPaginatedResponse MapToUsersPaginatedResponse(PagedResult<UserRoleDto> pagedUsers)
+    public async Task SoftDeleteAsync(string id)
     {
-        var data = pagedUsers.Data.Select(ur => new UserShortInfoDto
-        {
-            Id = ur.User.Id,
-            Nickname = ur.User.Nickname,
-            Email = ur.User.Email,
-            Role = ur.Role
+        var user = await _userRepository.FindByIdAsync(id);
 
-        }).ToList();
-
-        return new UsersPaginatedResponse
+        if (user != null)
         {
-            Page = pagedUsers.Page,
-            Limit = pagedUsers.Limit,
-            TotalPages = pagedUsers.TotalPages,
-            TotalRecords = pagedUsers.TotalRecords,
-            Data = data
-        };
+            await _userRepository.SoftDeleteAsync(user);
+        }        
     }
+
+
+    //helpers   
     private async Task SendEmailByEmailSubjectAsync(User user, string emailSubject, string? callBackUrl)
     {
         string emailContent;
@@ -406,14 +384,7 @@ public class UserService : IUserService
 
         var expires = TimeUtility.AddTime(created, tokenSettings.Unit, tokenSettings.Value);
 
-        var newToken = new UserActionToken
-        {
-            UserId = userId,
-            Token = tokenValue,
-            TokenType = tokenType,
-            CreatedAt = created,
-            ExpiresAt = expires
-        };
+        var newToken = UserMapper.ToUserActionToken(userId, tokenValue, tokenType, created, expires);        
 
         await _actionTokenRepository.UpsertAsync(newToken);
 
@@ -508,9 +479,7 @@ public class UserService : IUserService
 
     private async Task UpdateTokenDbWithNewRefreshToken(RefreshToken tokenDb, RefreshToken newRefreshToken)
     {
-        tokenDb.CreatedAt = newRefreshToken.CreatedAt;
-        tokenDb.ExpiresAt = newRefreshToken.ExpiresAt;
-        tokenDb.Token = newRefreshToken.Token;
+        UserMapper.ToUpdateRefreshToken(tokenDb, newRefreshToken);
 
         await _refreshTokenRepository.UpdateAsync(tokenDb);
     }

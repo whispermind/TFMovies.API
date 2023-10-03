@@ -19,5 +19,6 @@ public interface IUserService
     public Task ResetPasswordAsync(PasswordResetRequest model);    
     public Task ChangeRoleAsync(string id, ChangeRoleRequest model);
     public Task<IEnumerable<UserShortInfoDto>> GetAuthorsAsync(PagingSortParams model);
-    public Task<UsersPaginatedResponse> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryParams queryModel, ClaimsPrincipal currentUserPrincipal);
+    public Task<PagedResult<UserShortInfoDto>> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryParams queryModel, ClaimsPrincipal currentUserPrincipal);
+    public Task SoftDeleteAsync(string id);
 }
