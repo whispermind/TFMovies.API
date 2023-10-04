@@ -13,6 +13,8 @@ public static class PostCommentMapper
     {
         var result = new CommentDetailDto
         {
+            Id = comment.Id,
+            AuthorId = comment.User.Id,
             Author = comment.User.IsDeleted ? UserConstants.DeletedUserName : comment.User.Nickname,
             Content = comment.Content,
             CreatedAt = comment.CreatedAt
