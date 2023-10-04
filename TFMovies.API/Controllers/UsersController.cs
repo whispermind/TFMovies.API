@@ -411,6 +411,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = RoleNames.User)]
     [SwaggerResponse(204, "NO_CONTENT")]
     [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(409, "CONFLICT", typeof(ErrorResponse))]
     [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
     public async Task<IActionResult> RequestNewRoleAsync()
     {

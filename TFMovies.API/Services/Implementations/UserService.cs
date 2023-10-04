@@ -67,7 +67,7 @@ public class UserService : IUserService
 
         if (!userDb.EmailConfirmed)
         {
-            await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl);
+            await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl, roleName: null);
 
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.UnconfirmedEmail);
         }
@@ -150,7 +150,7 @@ public class UserService : IUserService
             throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
         }
 
-        await SendEmailByEmailSubjectAsync(newUser, EmailTemplates.EmailVerifySubject, callBackUrl);
+        await SendEmailByEmailSubjectAsync(newUser, EmailTemplates.EmailVerifySubject, callBackUrl, roleName: null);
     }
 
     public async Task VerifyEmailAsync(EmailVerifyRequest model)
@@ -184,14 +184,14 @@ public class UserService : IUserService
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
-        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl);
+        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.EmailVerifySubject, callBackUrl, roleName: null);
     }
 
     public async Task ForgotPasswordAsync(PasswordForgotRequest model, string callBackUrl)
     {
         var userDb = await GetUserOrThrowAsync(email: model.Email);
 
-        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordResetSubject, callBackUrl);
+        await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordResetSubject, callBackUrl, roleName: null);
     }
 
     public async Task<UserActionToken> ValidateResetTokenAsync(string token, bool setUsed)
@@ -227,7 +227,7 @@ public class UserService : IUserService
 
         EnsureSuccess(result);
 
-       await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject, null);
+       await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.PasswordSuccessfullyResetSubject, callBackUrl: null, roleName: null);
     }
 
     public async Task ChangeRoleAsync(string id, ChangeRoleRequest model)
@@ -257,6 +257,8 @@ public class UserService : IUserService
             var updateResult = await _userRepository.UpdateAsync(userDb);
 
             EnsureSuccess(updateResult);
+
+            await SendEmailByEmailSubjectAsync(userDb, EmailTemplates.RoleChangedSubject, callBackUrl: null, roleName: newRole.Name);
         }
     }
 
@@ -328,16 +330,23 @@ public class UserService : IUserService
 
         UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
 
+        if(currentUser.IsRequestForNewRole)
+        {
+            throw new ServiceException(HttpStatusCode.Conflict, ErrorMessages.ChangeRequestAlreadyExists);
+        }
+
         currentUser.IsRequestForNewRole = true;
 
         var result = await _userRepository.UpdateAsync(currentUser);
 
         EnsureSuccess(result);
+
+        await SendEmailByEmailSubjectAsync(currentUser, EmailTemplates.RoleChangeRequestSubject, callBackUrl: null, roleName: null);
     }
 
 
     //helpers   
-    private async Task SendEmailByEmailSubjectAsync(User user, string emailSubject, string? callBackUrl)
+    private async Task SendEmailByEmailSubjectAsync(User user, string emailSubject, string? callBackUrl, string? roleName)
     {
         string emailContent;
         string link;
@@ -358,7 +367,12 @@ public class UserService : IUserService
             case EmailTemplates.PasswordSuccessfullyResetSubject:
                 emailContent = string.Format(EmailTemplates.PasswordSuccessfullyResetBody, user.Nickname);
                 break;
-
+            case EmailTemplates.RoleChangeRequestSubject:
+                emailContent = string.Format(EmailTemplates.RoleChangeRequestBody, user.Nickname);
+                break;
+            case EmailTemplates.RoleChangedSubject:
+                emailContent = string.Format(EmailTemplates.RoleChangedBody, user.Nickname, roleName);
+                break;
             default:
                 throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.OperationFailed);
         }
