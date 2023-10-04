@@ -244,6 +244,32 @@ public class PostService : IPostService
         return response;
     }
 
+    public async Task DeleteAsync(string id, ClaimsPrincipal currentUserPrincipal)
+    {
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
+
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
+
+        var post = await _postRepository.GetByIdAsync(id);
+
+        if (post == null)
+        {
+            throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.PostNotFound);
+        }
+
+        var isAdmin = currentUserPrincipal.IsInRole(RoleNames.Admin);
+
+        if (!isAdmin)
+        {
+            if (currentUser.Id != post.UserId)
+            {
+                throw new ServiceException(HttpStatusCode.Forbidden, ErrorMessages.CommentDeleteForbidden);
+            }
+        }
+        //var commentToDelete = await _commentRepository.GetByIdAsync(id);
+
+        await _postRepository.DeleteAsync(post);
+    }
 
     //helpers
     private async Task<IEnumerable<string>> ExtractTerms(string? input, Func<IEnumerable<string>, Task<IEnumerable<string>>>? repositoryFunc = null)

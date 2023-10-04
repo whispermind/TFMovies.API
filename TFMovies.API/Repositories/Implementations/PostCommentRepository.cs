@@ -2,6 +2,7 @@
 using TFMovies.API.Data;
 using TFMovies.API.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using TFMovies.API.Models.Dto;
 
 namespace TFMovies.API.Repositories.Implementations;
 
@@ -17,6 +18,22 @@ public class PostCommentRepository : BaseRepository<PostComment>, IPostCommentRe
             .Include(e => e.User)
             .OrderByDescending(e => e.CreatedAt)
             .ToListAsync();
+
+        return result;
+    }
+
+    public async Task<CommentUserPostInfoDto?> GetCommentUserPostInfoByIdAsync(string id)
+    {
+        var result = await Query()
+            .Select(e => new CommentUserPostInfoDto
+            {
+                Id = e.Id,
+                UserId = e.User.Id,
+                PostId = e.Post.Id,
+                PostUserId = e.Post.UserId
+            })
+            .Where(e => e.Id == id)
+            .FirstOrDefaultAsync();
 
         return result;
     }

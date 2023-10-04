@@ -15,5 +15,6 @@ public interface IPostService
     public Task AddLikeAsync(string id, ClaimsPrincipal currentUserPrincipal);
     public Task RemoveLikeAsync(string id, ClaimsPrincipal currentUserPrincipal);
     public Task<IEnumerable<TagDto>> GetTagsAsync(PagingSortParams model);
-    public Task<PagedResult<PostShortInfoDto>> GetUserFavoritePostAsync(PagingSortParams model, ClaimsPrincipal currentUserPrincipal);   
+    public Task<PagedResult<PostShortInfoDto>> GetUserFavoritePostAsync(PagingSortParams model, ClaimsPrincipal currentUserPrincipal);
+    public Task DeleteAsync(string id, ClaimsPrincipal currentUserPrincipal);
 }

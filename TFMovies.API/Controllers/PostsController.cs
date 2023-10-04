@@ -5,6 +5,7 @@ using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
+using TFMovies.API.Services.Implementations;
 using TFMovies.API.Services.Interfaces;
 
 namespace TFMovies.API.Controllers;
@@ -267,5 +268,33 @@ public class PostsController : ControllerBase
         var result = await _postService.GetUserFavoritePostAsync(model, User);
 
         return Ok(result);
-    }   
+    }
+
+    /// <summary>
+    /// Deletes a post by its Id.
+    /// </summary>
+    /// <param name="id">The Id of the post to delete.</param>
+    /// <returns>Status 204 if successful.</returns>
+    /// <remarks>
+    /// Example:
+    /// 
+    ///     DELETE /posts/{id}
+    /// 
+    /// Note: 
+    /// - Accessible only to users who are authenticated and hold the 'Admin', 'Author' roles.
+    /// - The comment can be deleted by the author of the post.
+    /// </remarks>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = RoleNames.Admin + "," + RoleNames.Author)]
+    [SwaggerResponse(204, "NO_CONTENT")]
+    [SwaggerResponse(400, "BAD_REQUEST", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(403, "FORBIDDEN", typeof(ErrorResponse))]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> DeleteAsync(string id)
+    {
+        await _postService.DeleteAsync(id, User);
+
+        return NoContent();
+    }
 }

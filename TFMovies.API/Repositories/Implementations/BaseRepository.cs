@@ -27,12 +27,12 @@ public abstract class BaseRepository<T> : IBaseRepository<T>
         return await _entities.ToListAsync();
     }
 
-    public async Task<T?> GetByIdAsync(string id)
+    public async Task<T> GetByIdAsync(string id)
     {
         return await _entities.FindAsync(id);
     }
 
-    public async Task<T?> GetByKeyValuesAsync(object[] keyValues)
+    public async Task<T> GetByKeyValuesAsync(object[] keyValues)
     {
         return await _entities.FindAsync(keyValues);
     }
