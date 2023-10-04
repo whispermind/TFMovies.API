@@ -247,9 +247,16 @@ public class UserService : IUserService
 
         var result = await _userRepository.AddToRoleAsync(userDb, newRole.Name);
 
-        if (!result.Succeeded)
+        EnsureSuccess(result);
+
+        //reset IsRequestForNewRole if true
+        if (userDb.IsRequestForNewRole)
         {
-            throw new ServiceException(HttpStatusCode.InternalServerError, ErrorMessages.UpdateRoleFailed);
+            userDb.IsRequestForNewRole = false;
+
+            var updateResult = await _userRepository.UpdateAsync(userDb);
+
+            EnsureSuccess(updateResult);
         }
     }
 
@@ -312,7 +319,20 @@ public class UserService : IUserService
         if (user != null)
         {
             await _userRepository.SoftDeleteAsync(user);
-        }        
+        }
+    }
+
+    public async Task RequestNewRoleAsync(ClaimsPrincipal currentUserPrincipal)
+    {
+        var currentUser = await UserUtils.GetUserByIdFromClaimAsync(_userRepository, currentUserPrincipal);
+
+        UserUtils.CheckCurrentUserFoundOrThrow(currentUser);
+
+        currentUser.IsRequestForNewRole = true;
+
+        var result = await _userRepository.UpdateAsync(currentUser);
+
+        EnsureSuccess(result);
     }
 
 

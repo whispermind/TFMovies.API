@@ -32,6 +32,8 @@ public static class ErrorMessages
     //Posts
     public const string MaxTagsItemError = "A maximum of {0} tags are allowed.";
     public const string PostNotFound = "The post not found";
+    public const string TitleMaxLengthError = "Title cannot be more than 250 characters.";
+    public const string HtmlContentMaxLengthError = "Content cannot be more than 250,000 characters.";
 
     //Theme
     public const string ThemeNotFound = "The theme not found";

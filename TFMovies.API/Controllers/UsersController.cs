@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
@@ -392,6 +393,28 @@ public class UsersController : ControllerBase
     {
         await _userService.SoftDeleteAsync(id);
 
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Allows a User to request a new role.
+    /// </summary>
+    /// <returns>Status 200 if the request was successful.</returns>
+    /// <remarks>
+    /// Example:
+    /// 
+    ///     PUT /users/me/request-role
+    /// 
+    /// Note: This endpoint can only be accessed by users with the 'User' role.
+    /// </remarks>
+    [HttpPut("me/request-role")]
+    [Authorize(Roles = RoleNames.User)]
+    [SwaggerResponse(204, "NO_CONTENT")]
+    [SwaggerResponse(401, "UNAUTHORIZED")]
+    [SwaggerResponse(500, "INTERNAL_SERVER_ERROR", typeof(ErrorResponse))]
+    public async Task<IActionResult> RequestNewRoleAsync()
+    {
+        await _userService.RequestNewRoleAsync(User);
         return NoContent();
     }
 

@@ -21,4 +21,5 @@ public interface IUserService
     public Task<IEnumerable<UserShortInfoDto>> GetAuthorsAsync(PagingSortParams model);
     public Task<PagedResult<UserShortInfoDto>> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryParams queryModel, ClaimsPrincipal currentUserPrincipal);
     public Task SoftDeleteAsync(string id);
+    public Task RequestNewRoleAsync(ClaimsPrincipal currentUserPrincipal);
 }
