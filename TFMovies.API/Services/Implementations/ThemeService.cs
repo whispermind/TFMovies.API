@@ -2,6 +2,7 @@
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Data.Entities;
 using TFMovies.API.Exceptions;
+using TFMovies.API.Mappers;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Repositories.Interfaces;
@@ -34,12 +35,7 @@ public class ThemeService : IThemeService
     {
         var themesDb = await _themeRepository.GetAllAsync();
 
-        var themesResponse = themesDb.Select(theme =>
-            new ThemeDto
-            {
-                Id = theme.Id,
-                Name = theme.Name
-            });
+        var themesResponse = themesDb.Select(ThemeMapper.ToThemeDto);
 
         return themesResponse;
     }  
@@ -48,13 +44,14 @@ public class ThemeService : IThemeService
     {
         var theme = await GetByNameAsync(model.OldName);
 
-        var updatedThemeDb = new Theme
+        if (theme == null)
         {
-            Id = theme.Id,
-            Name = model.NewName
-        };    
+            throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.ThemeNotFoundWithName, model.OldName));
+        }
 
-        await _themeRepository.UpdateAsync(updatedThemeDb);
+        theme.Name = model.NewName;
+
+        await _themeRepository.SaveChangesAsync();
     }
 
     public async Task<ThemeDto> GetByNameAsync(string name)
@@ -63,13 +60,9 @@ public class ThemeService : IThemeService
 
         if (themeDb == null)
         {
-            throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.ThemeNotFound, name));
+            throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.ThemeNotFoundWithName, name));
         }
 
-        return new ThemeDto
-        {
-            Id = themeDb.Id,
-            Name = themeDb.Name
-        };
+        return ThemeMapper.ToThemeDto(themeDb);
     }
 }

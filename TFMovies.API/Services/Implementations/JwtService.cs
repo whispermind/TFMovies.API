@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using TFMovies.API.Data.Entities;
+using TFMovies.API.Mappers;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Services.Interfaces;
 using TFMovies.API.Utils;
@@ -48,12 +49,7 @@ public class JwtService : IJwtService
 
         var token = CreateJwtToken(claims, _jwtSettings.ValidIssuer, expires);
 
-        var refreshToken = new RefreshToken
-        {            
-            Token = token,
-            CreatedAt = created,            
-            ExpiresAt = expires
-        };                
+        var refreshToken = RefreshTokenMapper.ToRefreshToken(token, created, expires); ;                
 
         return refreshToken;
     }   

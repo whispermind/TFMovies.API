@@ -2,12 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
-using System.Security.Claims;
 using TFMovies.API.Common.Constants;
 using TFMovies.API.Models.Dto;
 using TFMovies.API.Models.Requests;
 using TFMovies.API.Models.Responses;
-using TFMovies.API.Services.Implementations;
 using TFMovies.API.Services.Interfaces;
 
 namespace TFMovies.API.Controllers;
