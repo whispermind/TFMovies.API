@@ -1,4 +1,7 @@
-﻿namespace TFMovies.API.Common.Constants;
+﻿using System;
+using TFMovies.API.Data.Entities;
+
+namespace TFMovies.API.Common.Constants;
 
 public static class ErrorMessages
 {
@@ -7,7 +10,7 @@ public static class ErrorMessages
     public const string OperationFailed = "Something went wrong. Please try again later.";
     public const string GenerateUniqueTokenFailed = "Unable to generate a unique action token after multiple attempts.";
     public const string SearchColumnsNotDefined = "Search Columns doesn't defined in derived repository.";
-    public const string SearchFailedNoValuesProvided = "No search values provided. Please enter a value to proceed with the search.";
+    public const string SearchFailedNoValuesProvided = "No search values provided. Please enter a value to proceed with the search.";    
 
     //User 
     //Model State -registration
@@ -41,4 +44,9 @@ public static class ErrorMessages
     //Theme
     public const string ThemeNotFound = "The theme not found";
     public const string ThemeNameConflict = "The theme \"{0}\" already exists";
+    public const string ThemeNotFoundWithName = "Theme with the name {0} not found.";
+
+    //Comment
+    public const string CommentNotFound = "The comment not found";
+    public const string CommentDeleteForbidden = "Permission to delete this comment is denied.";
 }

@@ -6,4 +6,5 @@ namespace TFMovies.API.Repositories.Interfaces;
 public interface IPostCommentRepository : IBaseRepository<PostComment>
 {
     public Task<IEnumerable<PostComment>> GetAllByPostIdAsync(string postId);
+    public Task<CommentUserPostInfoDto?> GetCommentUserPostInfoByIdAsync(string id);
 }

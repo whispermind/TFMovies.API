@@ -41,17 +41,7 @@ public class BlobStorageService : IFileStorageService
         if (file.Length > maxFileSizeMb * 1024 * 1024) 
         {
             throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.FileSizeTooLarge, maxFileSizeMb)); //400
-        }
-
-        // Check file format
-        var fileExtension = Path.GetExtension(file.FileName).ToLower();
-
-        var allowedExtensions = _blobSettings.ImageSettings.AllowedExtensions;
-
-        if (!allowedExtensions.Contains(fileExtension))
-        {
-            throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.FileTypeNotAllowed, string.Join(", ", allowedExtensions)));  //400
-        }        
+        }             
 
         var fileName = GenerateFileName(file.FileName);
 
