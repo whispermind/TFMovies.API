@@ -15,6 +15,7 @@ public static class UserMapper
             Id = user.Id,
             Nickname = user.Nickname,
             Email = user.Email,
+            RoleChangeRequested = user.IsRequestForNewRole,
             Role = roleDetails
         };
 

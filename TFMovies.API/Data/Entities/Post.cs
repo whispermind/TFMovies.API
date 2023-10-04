@@ -11,7 +11,7 @@ public class Post : BaseModel
     [ForeignKey("Theme")]
     public string ThemeId { get; set; }
 
-    [MaxLength(100)]
+    [MaxLength(250)]
     public string Title { get; set; }
     public string HtmlContent { get; set; }
 

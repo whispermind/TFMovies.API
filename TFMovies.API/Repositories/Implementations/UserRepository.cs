@@ -37,7 +37,7 @@ public class UserRepository : IUserRepository
     public IQueryable<User> QueryActiveUsersOnly()
     {
         return _userManager.Users
-            .Where(u => !u.IsDeleted)
+            .Where(u => !u.IsDeleted && u.EmailConfirmed)
             .AsNoTracking();
     }
 
@@ -71,7 +71,7 @@ public class UserRepository : IUserRepository
 
     public async Task<IEnumerable<User>> GetUsersByIdsAsync(IEnumerable<string> userIds)
     {        
-        var users = await QueryAllUsers()
+        var users = await QueryAllUsers() //needs to include "deleted" users
             .Where(u => userIds.Contains(u.Id))
             .ToListAsync();
 
@@ -89,6 +89,12 @@ public class UserRepository : IUserRepository
     public async Task<PagedResult<UserRoleDto>> GetAllPagingAsync(PagingSortParams pagingSortModel, UsersFilterParams filterModel, UsersQueryDto queryDto)
     {
         var query = QueryActiveUsersOnly();
+
+        // Filter by RoleRequest
+        if (filterModel.RoleRequest == true)
+        {
+            query = query.Where(u => u.IsRequestForNewRole);
+        }
 
         // Filter by Role
         if (!string.IsNullOrEmpty(filterModel.RoleId))

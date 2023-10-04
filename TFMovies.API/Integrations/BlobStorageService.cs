@@ -15,11 +15,10 @@ public class BlobStorageService : IFileStorageService
     private readonly BlobServiceClient _blobServiceClient;
     private readonly BlobSettings _blobSettings;
 
-
     public BlobStorageService(IOptions<BlobSettings> options)
     {
         _blobServiceClient = new BlobServiceClient(options.Value.ConnectionString);
-        _blobSettings = options.Value;
+        _blobSettings = options.Value;       
     }
 
     public async Task<FileUploadResponse> UploadImageAsync(IFormFile file)
@@ -36,6 +35,14 @@ public class BlobStorageService : IFileStorageService
             throw new ServiceException(HttpStatusCode.BadRequest, ErrorMessages.UploadedFileInvalid); //400
         }
 
+        // Check file size
+        var maxFileSizeMb = _blobSettings.ImageSettings.MaxSizeMb;
+
+        if (file.Length > maxFileSizeMb * 1024 * 1024) 
+        {
+            throw new ServiceException(HttpStatusCode.BadRequest, string.Format(ErrorMessages.FileSizeTooLarge, maxFileSizeMb)); //400
+        }    
+
         var fileName = GenerateFileName(file.FileName);
 
         var response = await UploadFileAsync(file.OpenReadStream(), containerName, fileName);
@@ -44,7 +51,6 @@ public class BlobStorageService : IFileStorageService
         {
             FileUrl = response
         };
-
     }
 
     private async Task<string> UploadFileAsync(Stream fileStream, string containerName, string fileName)

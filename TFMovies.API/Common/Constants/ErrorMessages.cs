@@ -24,14 +24,19 @@ public static class ErrorMessages
     public const string UpdateRoleFailed = "Error updating user role";    
     public const string UserMissingRoleError = "The user does not have an assigned role.";  
     public const string DeletedUserOperationError = "Operation not allowed on a deleted user.";
+    public const string ChangeRequestAlreadyExists = "A role change request has already been submitted. Please wait for your request to be processed.";
 
     // Files exception
     public const string UploadedFileInvalid = "No file uploaded or the file name is invalid.";
     public const string FileUploadFailed = "File upload failed";
+    public const string FileTypeNotAllowed = "File must be one of the following types: {0}";
+    public const string FileSizeTooLarge = "File size should be less than {0} MB";
 
     //Posts
     public const string MaxTagsItemError = "A maximum of {0} tags are allowed.";
     public const string PostNotFound = "The post not found";
+    public const string TitleMaxLengthError = "Title cannot be more than 250 characters.";
+    public const string HtmlContentMaxLengthError = "Content cannot be more than 250,000 characters.";
 
     //Theme
     public const string ThemeNotFound = "The theme not found";
